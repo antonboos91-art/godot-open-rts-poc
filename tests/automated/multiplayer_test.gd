@@ -28,7 +28,7 @@ func _run_host():
 	if not await _wait_until(func(): return network.peers.size() == 2, 20.0):
 		_finish(false, "no client joined")
 		return
-	network.start_match(MAP_PATH, true)
+	network.start_match(MAP_PATH, true, true)
 	var a_match = await _wait_for_match()
 	_check(a_match != null, "host match loaded")
 	# Startkapital für alle Menschen, damit der Client produzieren kann
@@ -84,7 +84,16 @@ func _run_client():
 			"/",
 			p.resource_b
 		)
-	_check(get_nodes_in_group("adversary_units").size() >= 4, "client sees other players' units")
+	_check(get_nodes_in_group("adversary_units").size() >= 8, "client sees both AI players' units")
+	_check(get_nodes_in_group("allied_units").size() >= 4, "host's units are allied on client")
+	var auto_attacking = load("res://source/match/units/actions/AutoAttacking.gd")
+	var my_unit = get_nodes_in_group("controlled_units")[0]
+	_check(
+		get_nodes_in_group("allied_units").all(
+			func(u): return not auto_attacking.is_applicable(my_unit, u)
+		),
+		"allies cannot be attacked"
+	)
 
 	var me = get_nodes_in_group("players").filter(func(p): return p.is_local())[0]
 	_check(me.peer_id == root.multiplayer.get_unique_id(), "local player has own peer id")
