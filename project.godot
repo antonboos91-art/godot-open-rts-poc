@@ -26,6 +26,7 @@ Globals="*res://source/Globals.gd"
 MatchSignals="*res://source/match/MatchSignals.gd"
 Signals="*res://source/Signals.gd"
 Utils="*res://source/Utils.gd"
+TouchInput="*res://source/TouchInput.gd"
 
 [debug]
 
@@ -40,6 +41,7 @@ gdscript/warnings/integer_division=0
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+window/handheld/orientation=4
 
 [dotnet]
 
@@ -227,3 +229,11 @@ locale/translations=PackedStringArray("res://assets/translations/match.en.transl
 
 3d/merge_rasterizer_cell_scale=0.001
 3d/use_edge_connections=false
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=false
+
+[rendering]
+
+renderer/rendering_method.mobile="gl_compatibility"

@@ -62,6 +62,17 @@ func get_ray_intersection_with_plane(mouse_pos: Vector2, plane: Plane) -> Varian
 	return plane.intersects_ray(project_ray_origin(mouse_pos), project_ray_normal(mouse_pos))
 
 
+## Verschiebt die Kamera so, dass der Boden dem Finger folgt (Touch-Pan).
+func pan_by_screen_delta(screen_delta: Vector2):
+	var viewport_height = get_viewport().get_visible_rect().size.y
+	var world_per_px = size / viewport_height
+	# Boden ist durch die 30°-Neigung vertikal um Faktor 2 gestaucht
+	var scaled = -screen_delta * world_per_px * Vector2(1.0, 2.0)
+	var camera_move_vector = Vector3(scaled.x, 0, scaled.y).rotated(Vector3.UP, rotation.y)
+	global_translate(camera_move_vector)
+	_align_position_to_bounding_planes()
+
+
 func _try_handling_movement(delta: float) -> bool:
 	if _is_rotating():
 		return false
@@ -92,6 +103,11 @@ func _calculate_screen_move_vector() -> Vector2:
 	var x_axis = Input.get_axis("move_map_left", "move_map_right")
 	var y_axis = Input.get_axis("move_map_up", "move_map_down")
 	var move_vector = Vector2(x_axis, y_axis)
+
+	# Kein Rand-Scrollen auf Touch-Geräten: die "Mausposition" bleibt dort
+	# nach einem Tipp am Rand stehen und würde die Kamera endlos bewegen.
+	if OS.has_feature("mobile"):
+		return move_vector
 
 	if mouse_pos.x <= screen_margin_for_movement:
 		move_vector.x = -1
