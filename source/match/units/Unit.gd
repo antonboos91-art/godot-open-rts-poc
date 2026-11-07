@@ -55,6 +55,8 @@ func _init():
 	var replicated_properties = [":variant", ":position", ":rotation", ":hp", ":hp_max"]
 	if "_construction_progress" in self:
 		replicated_properties.append(":_construction_progress")
+	if "charge_progress" in self:
+		replicated_properties.append(":charge_progress")
 	var synchronizer = MultiplayerSynchronizer.new()
 	synchronizer.name = "UnitSynchronizer"
 	synchronizer.replication_config = Utils.Net.replication_config(replicated_properties)

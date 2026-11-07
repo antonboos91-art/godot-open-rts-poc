@@ -13,6 +13,9 @@ const BUTTON_SIZE = Vector2(48, 48)
 var _player = null
 var _producer = null
 var _buttons = {}  # Variante -> Button
+var _ability_unit = null  # Einheit/Gebäude mit Spezialknopf (Entfalten, Superwaffe)
+var _ability_button = null
+var _ability_label = null
 
 
 func _init():
@@ -40,6 +43,33 @@ func show_production(structure):
 	return true
 
 
+## Spezialknopf: Bau-Mobil entfalten oder Superwaffe zielen. false, wenn keiner nötig ist.
+func show_ability(unit):
+	var variant = Factions.variant_of(unit)
+	var ability = Factions.ability(variant)
+	if ability != "deploy" and ability != "superweapon":
+		return false
+	if unit.has_method("is_constructed") and not unit.is_constructed():
+		return false
+	_player = unit.player
+	_producer = null
+	_ability_unit = unit
+	var icon_variant = Factions.deploy_target(variant) if ability == "deploy" else variant
+	_build([])
+	_ability_button = _create_button(icon_variant, _on_ability_pressed)
+	_ability_label = _ability_button.get_child(0)
+	_ability_label.text = ""
+	_buttons = {}
+	var first_slot = get_child(1)  # 0 ist der Timer
+	remove_child(first_slot)
+	first_slot.queue_free()
+	add_child(_ability_button)
+	move_child(_ability_button, 1)
+	show()
+	_refresh_availability()
+	return true
+
+
 func show_construction(player):
 	_player = player
 	_producer = null
@@ -49,6 +79,8 @@ func show_construction(player):
 
 
 func _build(variants):
+	_ability_unit = null
+	_ability_button = null
 	for child in get_children():
 		if not child is Timer:
 			remove_child(child)
@@ -70,7 +102,7 @@ func _build(variants):
 	_refresh_availability()
 
 
-func _create_button(variant):
+func _create_button(variant, on_pressed = null):
 	var button = Button.new()
 	button.name = variant.replace("/", "_")
 	button.custom_minimum_size = BUTTON_SIZE
@@ -91,12 +123,15 @@ func _create_button(variant):
 	cost_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	cost_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(cost_label)
-	button.pressed.connect(_on_button_pressed.bind(variant))
+	button.pressed.connect(on_pressed if on_pressed != null else _on_button_pressed.bind(variant))
 	return button
 
 
 func _refresh_availability():
 	if not visible or _player == null:
+		return
+	if _ability_unit != null:
+		_refresh_ability_button()
 		return
 	for variant in _buttons:
 		var button = _buttons[variant]
@@ -104,6 +139,35 @@ func _refresh_availability():
 		button.disabled = not missing.is_empty()
 		button.modulate = Color(0.6, 0.6, 0.6) if button.disabled else Color.WHITE
 		button.tooltip_text = _describe(variant, missing)
+
+
+func _refresh_ability_button():
+	if not is_instance_valid(_ability_unit) or _ability_button == null:
+		return
+	var variant = Factions.variant_of(_ability_unit)
+	if Factions.ability(variant) == "deploy":
+		_ability_button.tooltip_text = (
+			"Entfalten zu: %s" % Factions.display_name(Factions.deploy_target(variant))
+		)
+		return
+	var charge = _ability_unit.charge_progress
+	var ready = charge >= 1.0 and not _player.is_low_power()
+	_ability_button.disabled = not ready
+	_ability_button.modulate = Color.WHITE if ready else Color(0.6, 0.6, 0.6)
+	_ability_label.text = "FEUER" if ready else "%d%%" % int(charge * 100.0)
+	_ability_button.tooltip_text = (
+		"%s\n%s"
+		% [Factions.display_name(variant), "Bereit: Ziel anklicken" if ready else "Lädt auf"]
+	)
+
+
+func _on_ability_pressed():
+	if not is_instance_valid(_ability_unit):
+		return
+	if Factions.ability(Factions.variant_of(_ability_unit)) == "deploy":
+		_ability_unit.find_parent("Match").send_command("deploy", [_ability_unit])
+	elif _ability_unit.charge_progress >= 1.0:
+		MatchSignals.superweapon_targeting_requested.emit(_ability_unit)
 
 
 func _describe(variant, missing):

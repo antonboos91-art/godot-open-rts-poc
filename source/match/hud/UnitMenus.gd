@@ -40,8 +40,19 @@ func _try_showing_any_menu():
 		selected_controlled_units.size() == 1
 		and selected_controlled_units[0] is Structure
 		and selected_controlled_units[0].is_constructed()
-		and _faction_menu.show_production(selected_controlled_units[0])
+		and (
+			_faction_menu.show_production(selected_controlled_units[0])
+			or _faction_menu.show_ability(selected_controlled_units[0])
+		)
 	):
+		return true
+	if (
+		selected_controlled_units.size() == 1
+		and not selected_controlled_units[0] is Structure
+		and _faction_menu.show_ability(selected_controlled_units[0])
+	):
+		_generic_menu.units = selected_controlled_units
+		_generic_menu.show()
 		return true
 	if (
 		not selected_controlled_units.is_empty()

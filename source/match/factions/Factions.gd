@@ -67,7 +67,17 @@ const STRUCTURES = {
 			{"stats": {"attack_damage": 2, "attack_interval": 0.8}}
 		],
 		["turret_air", "Flak-Kläffer", "turret_air", 3, 1, -5, ["radar"], 8, {}],
-		["superweapon", "Sturm-Satellit", "facility", 12, 8, -20, ["lab"], 14, {"later": true}],
+		[
+			"superweapon",
+			"Sturm-Satellit",
+			"facility",
+			12,
+			8,
+			-20,
+			["lab"],
+			14,
+			{"ability": "superweapon", "strike": {"radius": 6.0, "damage": 12, "charge": 90.0}}
+		],
 	],
 	KATZEN:
 	[
@@ -119,7 +129,8 @@ const STRUCTURES = {
 #             braucht (Rollen), Werte, Extras]
 # Werte: hp, attack_damage, attack_interval, attack_range, sight_range, speed,
 #        attack_domains ("ground" | "air" | "both")
-# Extras: "ai" = Standard-Variante des Archetyps für die KI, "later" = Fähigkeit folgt
+# Extras: "ai" = Standard-Variante des Archetyps für die KI, "ability" = Spezialfähigkeit
+#         ("capture", "deploy"), "later" = Fähigkeit folgt
 const UNITS = {
 	SHIBAS:
 	[
@@ -171,7 +182,18 @@ const UNITS = {
 			},
 			{}
 		],
-		["ingenieur", "Ingenieur", "infantry", 2, 1, 4.0, "barracks", [], {}, {"later": true}],
+		[
+			"ingenieur",
+			"Ingenieur",
+			"infantry",
+			2,
+			1,
+			4.0,
+			"barracks",
+			[],
+			{"hp": 3, "attack_domains": "none"},
+			{"ability": "capture"}
+		],
 		["sammler", "Schrott-Sammler", "worker", 3, 0, 3.0, "hq", [], {"hp": 6}, {"ai": true}],
 		[
 			"buggy",
@@ -227,7 +249,18 @@ const UNITS = {
 			},
 			{}
 		],
-		["baumobil", "Bau-Mobil", "tank", 8, 2, 10.0, "factory", [], {}, {"later": true}],
+		[
+			"baumobil",
+			"Bau-Mobil",
+			"tank",
+			8,
+			2,
+			10.0,
+			"factory",
+			[],
+			{"hp": 12, "speed": 2.0, "attack_domains": "none"},
+			{"ability": "deploy"}
+		],
 		[
 			"wespe",
 			"Wespen-Drohne",
@@ -355,7 +388,18 @@ const UNITS = {
 			},
 			{}
 		],
-		["nestmobil", "Nest-Mobil", "tank", 8, 3, 10.0, "factory", [], {}, {"later": true}],
+		[
+			"nestmobil",
+			"Nest-Mobil",
+			"tank",
+			8,
+			3,
+			10.0,
+			"factory",
+			[],
+			{"hp": 10, "speed": 2.4, "attack_domains": "none"},
+			{"ability": "deploy"}
+		],
 		[
 			"nachtfalter",
 			"Nachtfalter",
@@ -505,7 +549,18 @@ const UNITS = {
 			},
 			{}
 		],
-		["hoehlenmobil", "Höhlen-Mobil", "tank", 9, 1, 11.0, "factory", [], {}, {"later": true}],
+		[
+			"hoehlenmobil",
+			"Höhlen-Mobil",
+			"tank",
+			9,
+			1,
+			11.0,
+			"factory",
+			[],
+			{"hp": 22, "speed": 1.6, "attack_domains": "none"},
+			{"ability": "deploy"}
+		],
 		[
 			"brummkopter",
 			"Brumm-Kopter",
@@ -658,13 +713,26 @@ static func is_available(player, variant):
 	)
 
 
+## Fähigkeit einer Variante: "capture", "deploy", "superweapon", "radar", "repair" oder "".
+static func ability(variant):
+	return entry(variant).get("ability", "")
+
+
+## Variante der Zentrale, zu der sich ein Bau-Mobil dieses Volks entfaltet.
+static func deploy_target(variant):
+	return entry(variant).get("faction", CORE) + "/hq"
+
+
 ## Werte als Eigenschaften für Unit.set() (Domänen in Navigation-Enum übersetzt).
 static func stats(variant):
 	var result = entry(variant).get("stats", {}).duplicate()
 	if "attack_domains" in result and result["attack_domains"] is String:
 		var domain = Constants.Match.Navigation.Domain
 		result["attack_domains"] = {
-			"ground": [domain.TERRAIN], "air": [domain.AIR], "both": [domain.TERRAIN, domain.AIR]
+			"none": [],
+			"ground": [domain.TERRAIN],
+			"air": [domain.AIR],
+			"both": [domain.TERRAIN, domain.AIR]
 		}[result["attack_domains"]]
 	return result
 
@@ -693,6 +761,7 @@ static func _build():
 					"requires": row[6],
 					"stats": structure_stats,
 					"ability": extras.get("ability", ""),
+					"strike": extras.get("strike", {}),
 					"later": extras.get("later", false),
 				}
 			)
@@ -711,6 +780,7 @@ static func _build():
 					"requires": row[7],
 					"stats": row[8],
 					"ai": extras.get("ai", false),
+					"ability": extras.get("ability", ""),
 					"later": extras.get("later", false),
 				}
 			)
@@ -773,6 +843,7 @@ static func _add(faction, key, data):
 		"at": "",
 		"stats": {},
 		"ability": "",
+		"strike": {},
 		"ai": false,
 		"later": false,
 	}

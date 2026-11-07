@@ -118,6 +118,67 @@ func _run():
 		"Schrottpresse delivers a free collector"
 	)
 
+	# Ingenieur übernimmt ein Feindgebäude
+	var enemy = players[1]
+	var enemy_hq = _own(enemy).filter(func(u): return u.variant == "katzen/hq")[0]
+	var enemy_power = _spawn_structure(
+		enemy, "katzen/power", enemy_hq.global_position + Vector3(0, 0, -6)
+	)
+	await _frames(3)
+	enemy_power.hp = 4
+	var engineer = _spawn_unit(
+		me, "shibas/ingenieur", enemy_power.global_position + Vector3(0, 0, 3)
+	)
+	await _frames(3)
+	_check(engineer.attack_domains.is_empty(), "engineer cannot attack")
+	_match.send_command("unit", [engineer], [_match.get_path_to(enemy_power)])
+	var captured = await _wait_until(
+		func(): return _own(me).any(func(u): return u.variant == "katzen/power"), 20.0
+	)
+	_check(captured, "engineer captured the enemy power plant")
+	await _frames(5)
+	_check(not is_instance_valid(engineer), "engineer is used up by capturing")
+	_check(not is_instance_valid(enemy_power), "old structure of the enemy is gone")
+	var mine = _own(me).filter(func(u): return u.variant == "katzen/power")
+	_check(mine.size() == 1 and mine[0].hp < mine[0].hp_max, "captured structure keeps its damage")
+	_check(mine.size() == 1 and mine[0].is_constructed(), "captured structure is finished")
+
+	# Bau-Mobil entfaltet sich zur Zentrale
+	var hqs_before = _own(me).filter(func(u): return u.variant == "shibas/hq").size()
+	var mcv = _spawn_unit(me, "shibas/baumobil", hq.global_position + Vector3(14, 0, -4))
+	await _frames(3)
+	_match.send_command("deploy", [mcv])
+	await _frames(5)
+	_check(
+		_own(me).filter(func(u): return u.variant == "shibas/hq").size() == hqs_before + 1,
+		"Bau-Mobil unfolds into a Rudel-Zentrale"
+	)
+	_check(not is_instance_valid(mcv), "Bau-Mobil is gone after unfolding")
+	var blocked = _spawn_unit(me, "shibas/baumobil", hq.global_position + Vector3(1, 0, 0.5))
+	await _frames(3)
+	_match.send_command("deploy", [blocked])
+	await _frames(5)
+	_check(is_instance_valid(blocked), "Bau-Mobil does not unfold on top of buildings")
+	if is_instance_valid(blocked):
+		blocked.queue_free()
+
+	# Superwaffe: lädt auf, feuert, trifft nur Gegner im Zielgebiet
+	var sw = _spawn_structure(me, "shibas/superweapon", hq.global_position + Vector3(-12, 0, -8))
+	await _frames(3)
+	_check(not sw.is_charged(), "Sturm-Satellit starts uncharged")
+	var victim = _own(players[2]).filter(func(u): return u.variant == "baeren/hq")[0]
+	var victim_hp = victim.hp
+	var own_unit_hp = hq.hp
+	_match.send_command("superweapon", [sw], [victim.global_position])
+	await _frames(3)
+	_check(victim.hp == victim_hp, "superweapon cannot fire before it is charged")
+	sw.charge_progress = 1.0
+	_match.send_command("superweapon", [sw], [victim.global_position])
+	await _frames(3)
+	_check(victim.hp == victim_hp - 12, "Sturm-Satellit damages enemies in the target area")
+	_check(sw.charge_progress == 0.0, "firing resets the charge")
+	_check(hq.hp == own_unit_hp, "superweapon spares own buildings")
+
 	# Strommangel: Produktion langsamer
 	_check(not me.is_low_power(), "power is fine before overload")
 	for i in range(3):
@@ -138,7 +199,7 @@ func _run():
 				_own(players[1]).any(func(u): return u.variant == "katzen/power")
 				and _own(players[2]).any(func(u): return u.variant == "baeren/power")
 			),
-		60.0
+		150.0
 	)
 	Engine.time_scale = 1.0
 	_check(ai_built_power, "AI players build power plants of their faction")
@@ -193,6 +254,20 @@ func _place_and_finish(player, workers, variant, offset):
 	placed[0].construct(1.0)
 	await _frames(2)
 	return placed[0]
+
+
+func _spawn_unit(player, variant, position):
+	var unit = load(Factions.entry(variant)["archetype"]).instantiate()
+	unit.variant = variant
+	MatchSignals.setup_and_spawn_unit.emit(unit, Transform3D(Basis(), position), player)
+	return unit
+
+
+## Gebäude sofort fertig gestellt.
+func _spawn_structure(player, variant, position):
+	var structure = _spawn_unit(player, variant, position)
+	structure.construct(1.0)
+	return structure
 
 
 func _queue_size_after_produce(structure, variant):

@@ -42,6 +42,27 @@ func _run_host():
 		if player.peer_id > 0:
 			player.resource_a = 10
 			player.resource_b = 10
+	# Zusatz für Fähigkeiten: Höhlen-Mobil für den Client, geladene Superwaffe beim Host
+	var Factions = load("res://source/match/factions/Factions.gd")
+	var signals = root.get_node("/root/MatchSignals")
+	for player in get_nodes_in_group("players"):
+		if player.peer_id > 1:
+			var mcv = load(Factions.entry("baeren/hoehlenmobil")["archetype"]).instantiate()
+			mcv.variant = "baeren/hoehlenmobil"
+			var hq = get_nodes_in_group("units").filter(func(u): return u.player == player and u.variant == "baeren/hq")[0]
+			signals.setup_and_spawn_unit.emit(
+				mcv, Transform3D(Basis(), hq.global_position + Vector3(-9, 0, 7)), player
+			)
+		elif player.peer_id == 1:
+			var sw = load(Factions.entry("shibas/superweapon")["archetype"]).instantiate()
+			sw.variant = "shibas/superweapon"
+			var hq = get_nodes_in_group("units").filter(func(u): return u.player == player and u.variant == "shibas/hq")[0]
+			signals.setup_and_spawn_unit.emit(
+				sw, Transform3D(Basis(), hq.global_position + Vector3(-12, 0, -8)), player
+			)
+			sw.construct(1.0)
+			await process_frame
+			sw.charge_progress = 0.5
 	# Warten bis der Client fertig ist (er trennt die Verbindung)
 	await _wait_until(func(): return network.peers.size() == 1, 90.0)
 	for p in get_nodes_in_group("players"):
@@ -123,6 +144,44 @@ func _run_client():
 	_check(moved, "move command executed by host and synced back")
 	print("worker moved ", start, " -> ", worker.global_position)
 
+	# Fähigkeiten: Superwaffen-Ladestand des Verbündeten kommt an, Bau-Mobil entfalten
+	var sw_on_client = await _wait_until(
+		func():
+			return get_nodes_in_group("allied_units").any(
+				func(u): return u.variant == "shibas/superweapon" and u.charge_progress == 0.5
+			),
+		8.0
+	)
+	_check(sw_on_client, "superweapon charge is replicated to the client")
+	var mcvs = get_nodes_in_group("controlled_units").filter(
+		func(u): return u.variant == "baeren/hoehlenmobil"
+	)
+	_check(not mcv_list_empty(mcvs), "client received its Höhlen-Mobil")
+	var hqs_before = (
+		get_nodes_in_group("controlled_units")
+		. filter(func(u): return u.variant == "baeren/hq")
+		. size()
+	)
+	if not mcvs.is_empty():
+		a_match.send_command("deploy", [mcvs[0]])
+		var unfolded = await _wait_until(
+			func():
+				return (
+					(
+						get_nodes_in_group("controlled_units")
+						. filter(func(u): return u.variant == "baeren/hq")
+						. size()
+					)
+					== hqs_before + 1
+				),
+			8.0
+		)
+		_check(unfolded, "client unfolds Höhlen-Mobil into a Bunkerhöhle")
+		_check(
+			not is_instance_valid(mcvs[0]) or mcvs[0].is_queued_for_deletion(),
+			"Höhlen-Mobil is gone"
+		)
+
 	# Produktion
 	var command_center = get_nodes_in_group("controlled_units").filter(func(u): return u.get_script().resource_path.ends_with("CommandCenter.gd"))[0]
 	var got_resources = await _wait_until(func(): return me.resource_a == 10, 5.0)
@@ -156,6 +215,10 @@ func _run_client():
 			)
 			_check(progressed, "construction progress synced (hp rising)")
 	_finish(true, "client")
+
+
+func mcv_list_empty(list):
+	return list.is_empty()
 
 
 func _own_structures():

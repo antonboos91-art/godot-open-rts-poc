@@ -4,19 +4,64 @@ extends "res://source/match/units/Structure.gd"
 
 const REPAIR_INTERVAL_S = 1.0
 
+## Ladestand der Superwaffe [0.0..1.0]; wird vom Host an Clients gespiegelt.
+var charge_progress = 0.0
+
 var ability:
 	get:
-		return Factions.entry(Factions.variant_of(self)).get("ability", "")
+		return Factions.ability(Factions.variant_of(self))
+
+var _charge_seconds = 0.0
 
 
 func _ready():
 	await super()
-	if ability == "repair" and not Network.is_client():
+	if Network.is_client():
+		return
+	if ability == "repair":
 		var timer = Timer.new()
 		timer.wait_time = REPAIR_INTERVAL_S
 		timer.autostart = true
 		timer.timeout.connect(_repair_nearby_units)
 		add_child(timer)
+
+
+func _process(delta):
+	if ability != "superweapon" or Network.is_client() or not is_constructed():
+		return
+	if player.is_low_power():
+		return
+	var strike = Factions.entry(Factions.variant_of(self))["strike"]
+	_charge_seconds = min(strike["charge"], _charge_seconds + delta)
+	# in 1-%-Schritten setzen, damit nicht jedes Frame repliziert wird
+	charge_progress = floor(_charge_seconds / strike["charge"] * 100.0) / 100.0
+
+
+func is_charged():
+	return charge_progress >= 1.0
+
+
+## Superwaffe abfeuern: Schaden an allen Nicht-Verbündeten im Zielgebiet.
+func fire_superweapon(target):
+	if ability != "superweapon" or not is_constructed() or not is_charged():
+		return
+	if player.is_low_power() or Network.is_client():
+		return
+	var strike = Factions.entry(Factions.variant_of(self))["strike"]
+	_charge_seconds = 0.0
+	charge_progress = 0.0
+	var target_yless = target * Vector3(1, 0, 1)
+	for unit in get_tree().get_nodes_in_group("units"):
+		if (
+			not player.is_ally_of(unit.player)
+			and unit.global_position_yless.distance_to(target_yless) <= strike["radius"]
+		):
+			unit.hp = unit.hp - strike["damage"]
+	var match_node = find_parent("Match")
+	if Network.is_online():
+		match_node.show_strike.rpc(target, strike["radius"])
+	else:
+		match_node.show_strike(target, strike["radius"])
 
 
 ## Werkstatt: repariert eigene und verbündete Einheiten in der Nähe.
