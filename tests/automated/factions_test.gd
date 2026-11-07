@@ -90,6 +90,21 @@ func _run():
 		var newest = _own(me).filter(func(u): return u.variant == "shibas/zapper")
 		_check(newest.size() == 1 and newest[0].attack_damage == 3, "Zapper has its own stats")
 
+	# Shibas haben eigene Sprites je Variante
+	var sprite_path = load("res://source/match/units/traits/PixelSprite.gd").sprite_path_for(
+		"shibas/tesla", "Tank"
+	)
+	_check(sprite_path.ends_with("shibas_tesla.png"), "Tesla-Panzer has its own sprite")
+	_check(
+		(
+			load("res://source/match/units/traits/PixelSprite.gd")
+			. sprite_path_for("katzen/prisma", "Tank")
+			. ends_with("Tank.png")
+		),
+		"factions without own sprites fall back to the archetype sprite"
+	)
+	_check(trooper.find_child("PixelSprite", false, false) != null, "units show a pixel sprite")
+
 	# Raffinerie: Rohstoff-Abgabe und ein Sammler gratis
 	var collectors_before = _own(me).filter(func(u): return u.variant == "shibas/sammler").size()
 	var refinery = await _place_and_finish(me, workers, "shibas/refinery", Vector3(0, 0, 9))

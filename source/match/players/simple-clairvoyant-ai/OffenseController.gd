@@ -7,6 +7,7 @@ const Worker = preload("res://source/match/units/Worker.gd")
 const CommandCenter = preload("res://source/match/units/CommandCenter.gd")
 const VehicleFactory = preload("res://source/match/units/VehicleFactory.gd")
 const VehicleFactoryScene = preload("res://source/match/units/VehicleFactory.tscn")
+const Infantry = preload("res://source/match/units/Infantry.gd")
 const Tank = preload("res://source/match/units/Tank.gd")
 const TankScene = preload("res://source/match/units/Tank.tscn")
 const AircraftFactory = preload("res://source/match/units/AircraftFactory.gd")
@@ -131,7 +132,10 @@ func _try_creating_new_battlegroup():
 
 func _attach_current_battle_units():
 	var battle_units = get_tree().get_nodes_in_group("units").filter(
-		func(unit): return unit.player == _player and (unit is Tank or unit is Helicopter)
+		func(unit):
+			return (
+				unit.player == _player and (unit is Tank or unit is Helicopter or unit is Infantry)
+			)
 	)
 	for battle_unit in battle_units:
 		_on_unit_spawned(battle_unit)
@@ -273,7 +277,7 @@ func _number_of_additional_units_required():
 func _on_unit_spawned(unit):
 	if unit.player != _player:
 		return
-	if unit is Tank or unit is Helicopter:
+	if unit is Tank or unit is Helicopter or unit is Infantry:
 		# TODO: check if this still happens after ensuring only own players should match
 		# assert(_battlegroup_under_forming != null) # TODO: investigate how do we get here
 		if _battlegroup_under_forming == null:

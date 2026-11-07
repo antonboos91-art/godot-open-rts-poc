@@ -257,6 +257,177 @@ FACILITY = [
     box(0, 12, 10, 2, 3, 4, GLASS),
 ]
 
+# --- Shibas (Rudel-Konzern KAWA): eckig, Konzernlook, Spitzohren, Neon-Orange -------
+# Dateiname: shibas_<Variante>.png (Variante wie in Factions.gd)
+
+SHIBA_EARS = [box(-2, 0, 2, 2, 11, 3, TEAM), box(2, 0, 2, 2, 11, 3, TEAM)]  # Infanterie
+
+
+def with_ears(parts, y, z, spread, size=2, h=3):
+    return parts + [box(-spread, y, size, size, z, h, TEAM), box(spread, y, size, size, z, h, TEAM)]
+
+
+SHIBAS_UNITS = {
+    "trooper": INFANTRY + SHIBA_EARS,
+    "zapper": INFANTRY
+    + SHIBA_EARS
+    + [
+        box(4, 4, 1, 11, 6, 1, STEEL_DARK),  # Elektro-Lanze
+        box(4, 9, 3, 2, 6, 2, GLASS),
+    ],
+    "schnueffler": [
+        box(-1.5, 0, 2, 2, 0, 3, BLACK),
+        box(1.5, 0, 2, 2, 0, 3, BLACK),
+        box(0, 0, 5, 3, 3, 4, STEEL),
+        cyl(0, 1, 2, 7, 2, CONCRETE, segments=8),
+        box(-3, 0, 2, 2, 8, 5, TEAM),  # große Ohren
+        box(3, 0, 2, 2, 8, 5, TEAM),
+        box(0, 4, 2, 2, 5, 1, GLASS),  # Schnüffelsensor
+    ],
+    "sammler": with_ears(WORKER, 6, 8, 3, 2, 3),
+    "buggy": [
+        cyl(-6, 7, 3, 0, 3, BLACK, segments=8),
+        cyl(6, 7, 3, 0, 3, BLACK, segments=8),
+        cyl(-6, -7, 3, 0, 3, BLACK, segments=8),
+        cyl(6, -7, 3, 0, 3, BLACK, segments=8),
+        box(0, 0, 8, 18, 2, 2, TEAM_DARK),
+        box(0, 3, 7, 6, 4, 2, STEEL),
+        box(-3, -2, 1, 1, 6, 4, STEEL_DARK),  # Überrollbügel
+        box(3, -2, 1, 1, 6, 4, STEEL_DARK),
+        box(0, 6, 1, 8, 7, 1, STEEL_DARK),  # MG
+    ],
+    "tesla": [
+        box(-6, 0, 4, 20, 0, 3, BLACK),
+        box(6, 0, 4, 20, 0, 3, BLACK),
+        box(0, 0, 9, 17, 2, 3, TEAM_DARK),
+        box(0, 1, 8, 13, 5, 0, TEAM),
+        cyl(0, -1, 3.5, 6, 6, STEEL, segments=8),  # Tesla-Spule
+        cyl(0, -1, 2, 12, 1, GLASS, segments=8),
+        cyl(0, -1, 4.5, 13, 0, TEAM, segments=8),
+    ],
+    "raketen": [
+        box(-6, 0, 4, 20, 0, 3, BLACK),
+        box(6, 0, 4, 20, 0, 3, BLACK),
+        box(0, 0, 9, 17, 2, 3, TEAM_DARK),
+        box(0, 2, 8, 12, 5, 1, TEAM),
+        poly([(-4, -5), (4, -5), (4, 6), (-4, 6)], 6, 4, STEEL_DARK),  # Raketenkasten
+        box(-2, 6, 2, 2, 8, 2, HAZARD),
+        box(2, 6, 2, 2, 8, 2, HAZARD),
+        box(0, -4, 6, 2, 10, 0, TEAM),
+    ],
+    "wespe": [
+        box(0, -6, 1, 8, 3, 1, STEEL_DARK),
+        poly([(-3, -3), (3, -3), (3, 5), (0, 8), (-3, 5)], 0, 3, TEAM),
+        box(0, 5, 3, 2, 3, 1, GLASS),
+        box(-9, 0, 8, 1, 5, 0, STEEL_DARK),  # Flügelrotoren
+        box(9, 0, 8, 1, 5, 0, STEEL_DARK),
+        box(-9, 0, 1, 8, 5, 0, STEEL_DARK),
+        box(9, 0, 1, 8, 5, 0, STEEL_DARK),
+    ],
+    "gewitter": HELICOPTER
+    + [
+        cyl(0, 8, 2, 0, 3, GLASS, segments=8),  # Blitzkanone unter dem Bug
+        box(0, 9, 1, 5, 1, 1, STEEL_DARK),
+    ],
+}
+
+SHIBA_ROOF = poly([(-14, -8), (14, -8), (14, 8), (-14, 8)], 10, 1, TEAM_DARK)
+
+SHIBAS_BUILDINGS = {
+    "hq": COMMAND_CENTER + [box(-14, -14, 4, 4, 20, 6, TEAM), box(-2, -14, 4, 4, 20, 6, TEAM)],  # Ohr-Antennen
+    "power": [
+        box(0, 0, 36, 34, 0, 3, CONCRETE),
+        cyl(-6, -2, 10, 3, 8, STEEL, segments=16),  # Dynamo-Trommel
+        cyl(-6, -2, 7, 11, 1, TEAM, segments=16),
+        box(12, 6, 10, 12, 3, 5, STEEL_DARK),
+        box(12, 6, 8, 2, 8, 1, GLASS),
+        box(10, -12, 2, 2, 3, 12, RUST),
+    ],
+    "power_big": [
+        box(0, 0, 44, 40, 0, 3, CONCRETE),
+        cyl(-10, -4, 9, 3, 10, STEEL, segments=16),
+        cyl(10, -4, 9, 3, 10, STEEL, segments=16),
+        cyl(-10, -4, 6, 13, 1, TEAM, segments=14),
+        cyl(10, -4, 6, 13, 1, TEAM, segments=14),
+        box(0, 12, 24, 8, 3, 6, STEEL_DARK),
+        box(0, 12, 20, 2, 9, 1, GLASS),
+    ],
+    "refinery": REFINERY + [box(-3, -12, 3, 3, 12, 4, TEAM), box(3, -12, 3, 3, 12, 4, TEAM)],
+    "barracks": [
+        box(0, 0, 38, 30, 0, 3, CONCRETE),
+        box(0, 0, 30, 22, 3, 7, STEEL),
+        poly([(-17, -12), (17, -12), (0, 6)], 10, 4, TEAM),  # Hundehütten-Dach
+        box(0, 12, 10, 2, 3, 6, BLACK),  # Tür
+        box(-14, 10, 3, 3, 3, 3, HAZARD),
+        box(14, 10, 3, 3, 3, 3, HAZARD),
+    ],
+    "factory": VEHICLE_FACTORY + [box(10, -10, 6, 2, 14, 0, TEAM), box(-10, -10, 6, 2, 14, 0, HAZARD)],
+    "silo": [
+        box(0, 0, 34, 30, 0, 3, CONCRETE),
+        cyl(-8, 0, 7, 3, 14, STEEL, segments=14),
+        cyl(8, 0, 7, 3, 14, STEEL, segments=14),
+        cyl(-8, 0, 5, 17, 1, TEAM, segments=12),
+        cyl(8, 0, 5, 17, 1, TEAM, segments=12),
+    ],
+    "radar": [
+        box(0, 0, 30, 28, 0, 3, CONCRETE),
+        box(0, 0, 10, 10, 3, 14, STEEL),
+        cyl(0, 0, 11, 17, 1, TEAM, segments=14),  # Schüssel
+        box(0, 0, 2, 2, 18, 8, STEEL_DARK),
+        box(0, 12, 12, 2, 3, 4, GLASS),
+    ],
+    "airfield": AIRCRAFT_FACTORY + [box(-4, -14, 4, 4, 11, 6, TEAM), box(4, -14, 4, 4, 11, 6, TEAM)],
+    "repair": [
+        box(0, 0, 38, 30, 0, 3, CONCRETE),
+        box(-12, 0, 6, 26, 3, 12, STEEL),
+        box(12, 0, 6, 26, 3, 12, STEEL),
+        box(0, 0, 30, 6, 15, 1, TEAM),  # Kran-Brücke
+        box(0, 0, 3, 3, 8, 7, HAZARD),
+    ],
+    "lab": [
+        box(0, 0, 38, 34, 0, 3, CONCRETE),
+        box(0, -2, 28, 24, 3, 8, STEEL),
+        cyl(0, -2, 9, 11, 3, GLASS, segments=14),  # Kuppel
+        cyl(0, -2, 6, 14, 2, TEAM, segments=12),
+        box(-14, 12, 6, 6, 3, 10, STEEL_DARK),
+    ],
+    "turret_ground": [
+        box(0, 0, 18, 18, 0, 5, CONCRETE),
+        box(0, 0, 4, 4, 5, 12, STEEL_DARK),  # Zapper-Mast
+        cyl(0, 0, 5, 17, 2, TEAM, segments=10),
+        cyl(0, 0, 2, 19, 2, GLASS, segments=8),
+    ],
+    "turret_air": [
+        box(0, 0, 18, 18, 0, 5, CONCRETE),
+        cyl(0, 0, 5, 5, 3, TEAM),
+        box(-3, 4, 2, 7, 8, 9, STEEL_DARK),
+        box(3, 4, 2, 7, 8, 9, STEEL_DARK),
+        box(0, -4, 8, 2, 8, 2, TEAM),
+    ],
+}
+
+# Spritegröße je Variante (Infanterie/Fahrzeuge 32 px, Gebäude 64 px) und Basislinie
+SHIBAS_SHEETS = {
+    "trooper": (32, 24),
+    "zapper": (32, 24),
+    "schnueffler": (32, 24),
+    "sammler": (32, 22),
+    "buggy": (32, 22),
+    "tesla": (32, 22),
+    "raketen": (32, 22),
+    "wespe": (32, 20),
+    "gewitter": (32, 20),
+    "turret_ground": (32, 22),
+    "turret_air": (32, 22),
+}
+
+
+def shibas():
+    for key, parts in {**SHIBAS_UNITS, **SHIBAS_BUILDINGS}.items():
+        size, baseline = SHIBAS_SHEETS.get(key, (64, 44))
+        sheet("shibas_" + key, parts, size, baseline)
+
+
 if __name__ == "__main__":
     sheet("Infantry", INFANTRY, 32, 24)
     sheet("Barracks", BARRACKS, 64, 44)
@@ -272,3 +443,4 @@ if __name__ == "__main__":
     sheet("AircraftFactory", AIRCRAFT_FACTORY, 64, 44)
     sheet("AntiGroundTurret", AG_TURRET, 32, 22)
     sheet("AntiAirTurret", AA_TURRET, 32, 22)
+    shibas()
