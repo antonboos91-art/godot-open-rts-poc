@@ -107,7 +107,8 @@ func start_match(map_path, fill_free_slots_with_ai = true, humans_vs_ai = false)
 				{
 					"controller": Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI,
 					"peer_id": 0,
-					"slot": slot
+					"slot": slot,
+					"team": 2 if humans_vs_ai else 0,
 				}
 			)
 	_clients_ready_for_match = []

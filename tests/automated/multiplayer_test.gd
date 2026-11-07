@@ -31,6 +31,10 @@ func _run_host():
 	network.start_match(MAP_PATH, true, true)
 	var a_match = await _wait_for_match()
 	_check(a_match != null, "host match loaded")
+	var ais = get_nodes_in_group("players").filter(func(p): return p.peer_id == 0)
+	var humans = get_nodes_in_group("players").filter(func(p): return p.peer_id > 0)
+	_check(ais.size() == 2 and ais[0].is_ally_of(ais[1]), "AI players are allied")
+	_check(not humans[0].is_ally_of(ais[0]), "humans and AI are enemies")
 	# Startkapital für alle Menschen, damit der Client produzieren kann
 	await _wait_until(func(): return get_nodes_in_group("units").size() >= 16, 10.0)
 	for player in get_nodes_in_group("players"):
