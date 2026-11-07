@@ -18,7 +18,10 @@ func _run():
 	await _frames(30)
 	root.get_node("/root/MatchSignals").terrain_targeted.connect(func(p): _targeted = p)
 	var cam = root.get_viewport().get_camera_3d()
-	var unit = get_nodes_in_group("controlled_units").filter(func(u): return not u.has_method("is_constructed"))[0]
+	var mobile_units = get_nodes_in_group("controlled_units").filter(
+		func(u): return not u.has_method("is_constructed")
+	)
+	var unit = mobile_units[0]
 	var unit_pos = cam.unproject_position(unit.global_position)
 
 	# Tippen auf Einheit -> ausgewählt
