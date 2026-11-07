@@ -38,15 +38,19 @@ sky_material = SubResource("ProceduralSkyMaterial_ysb0j")
 
 [sub_resource type="Environment" id="Environment_qxcnu"]
 background_mode = 2
-background_energy_multiplier = 1.2
+background_energy_multiplier = 0.4
 sky = SubResource("Sky_kunr4")
-ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_color = Color(0.32, 0.36, 0.5, 1)
 tonemap_mode = 3
-tonemap_exposure = 0.9
-fog_light_color = Color(0.960784, 0.745098, 0.654902, 1)
+tonemap_exposure = 0.75
+fog_light_color = Color(0.25, 0.27, 0.22, 1)
 fog_density = 0.0016
 fog_height = 0.25
 fog_height_density = 1.2
+adjustment_enabled = true
+adjustment_brightness = 0.72
+adjustment_contrast = 1.2
+adjustment_saturation = 0.7
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_qw0ps"]
 render_priority = 0
@@ -134,6 +138,8 @@ bounding_planes = Array[Plane]([Plane(1, 0, 0, 0), Plane(-1, 0, 0, -50), Plane(0
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.512043, 0.673162, -0.533541, 0, 0.621148, 0.783694, 0.85896, -0.401285, 0.318054, 0, 38.7614, 0)
+light_color = Color(1, 0.78, 0.6, 1)
+light_energy = 0.65
 shadow_enabled = true
 shadow_bias = 0.3
 shadow_blur = 0.05
