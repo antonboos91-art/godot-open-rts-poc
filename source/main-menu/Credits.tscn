@@ -60,8 +60,10 @@ theme_override_constants/margin_bottom = 15
 layout_mode = 2
 theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
-text = "[center][u]CORE_CONTRIBUTORS:[/u]
-- Pawel Lampe (Scony) | Lampe Games
+text = "[center]A game by Anton Brainless Productions
+
+[u]BASED ON:[/u]
+- Open RTS by Pawel Lampe (Scony) | Lampe Games (MIT)
 
 [u]ASSETS:[/u]
 - 3D Space Kit by Kenney.nl"
