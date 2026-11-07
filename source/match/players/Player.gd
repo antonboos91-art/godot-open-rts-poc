@@ -2,6 +2,8 @@ extends Node3D
 
 signal changed
 
+const Factions = preload("res://source/match/factions/Factions.gd")
+
 @export var resource_a = 0:
 	set(value):
 		resource_a = value
@@ -15,6 +17,9 @@ signal changed
 ## Spieler mit gleichem Team (> 0) sind verbündet: kein gegenseitiger Angriff,
 ## gemeinsame Sicht, gemeinsamer Sieg. 0 = jeder gegen jeden.
 var team = 0
+
+## Volk, z. B. "shibas" (leer = Grundvolk ohne Stromnetz). Siehe Factions.gd
+var faction = ""
 
 ## Multiplayer-Peer, der diesen Spieler steuert (0 = KI bzw. lokal im Einzelspieler).
 var peer_id = 0
@@ -42,6 +47,33 @@ func is_local():
 	if not Network.is_online():
 		return true
 	return peer_id == multiplayer.get_unique_id()
+
+
+## Strom: [erzeugt, verbraucht] aller fertigen Gebäude dieses Spielers.
+func get_power():
+	var produced = 0
+	var used = 0
+	for unit in get_children():
+		if not unit.has_method("is_constructed") or not unit.is_constructed():
+			continue
+		var power = Factions.power(Factions.variant_of(unit))
+		if power > 0:
+			produced += power
+		else:
+			used -= power
+	return [produced, used]
+
+
+## Zu wenig Strom: Produktion langsamer, Abwehrtürme und Werkstatt aus.
+func is_low_power():
+	if Factions.faction_of(self) == Factions.CORE:
+		return false
+	var power = get_power()
+	return power[1] > power[0]
+
+
+func production_speed_factor():
+	return Constants.Match.Units.LOW_POWER_PRODUCTION_FACTOR if is_low_power() else 1.0
 
 
 func add_resources(resources):

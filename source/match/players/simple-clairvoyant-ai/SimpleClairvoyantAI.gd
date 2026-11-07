@@ -3,6 +3,10 @@ extends "res://source/match/players/Player.gd"
 enum ResourceRequestPriority { LOW, MEDIUM, HIGH }
 enum OffensiveStructure { VEHICLE_FACTORY, AIRCRAFT_FACTORY }
 
+const PowerController = preload(
+	"res://source/match/players/simple-clairvoyant-ai/PowerController.gd"
+)
+
 @export var expected_number_of_workers = 3
 @export var expected_number_of_ccs = 1
 @export var expected_number_of_ag_turrets = 1
@@ -19,6 +23,7 @@ var _resource_requests = {
 	ResourceRequestPriority.HIGH: [],
 }
 var _call_to_perform_during_process = null
+var _power_controller = PowerController.new()
 
 @onready var _match = find_parent("Match")
 
@@ -37,6 +42,12 @@ func _ready():
 	await get_tree().physics_frame
 
 	changed.connect(_on_player_data_changed)
+	_power_controller.name = "PowerController"
+	add_child(_power_controller)
+	_power_controller.resources_required.connect(
+		_on_resource_request.bind(_power_controller, ResourceRequestPriority.HIGH)
+	)
+	_power_controller.setup(self)
 	_economy_controller.resources_required.connect(
 		_on_resource_request.bind(_economy_controller, ResourceRequestPriority.HIGH)
 	)

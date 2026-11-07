@@ -43,9 +43,7 @@ func cancel_construction():
 	if Network.is_client():
 		find_parent("Match").send_command("cancel_construction", [self])
 		return
-	var scene_path = get_script().resource_path.replace(".gd", ".tscn")
-	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[scene_path]
-	player.add_resources(construction_cost)
+	player.add_resources(Factions.cost(Factions.variant_of(self)))
 	queue_free()
 
 

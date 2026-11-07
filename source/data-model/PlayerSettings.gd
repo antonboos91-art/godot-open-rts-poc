@@ -5,3 +5,4 @@ extends Resource
 @export var spawn_index_offset = 0
 @export var team = 0  # 0 = kein Team (jeder gegen jeden)
 @export var peer_id = 0  # 0 = KI oder lokaler Spieler offline
+@export var faction = ""  # "shibas", "katzen", "baeren" oder leer (Grundvolk)

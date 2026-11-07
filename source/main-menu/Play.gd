@@ -3,8 +3,10 @@ extends Control
 const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
 const PlayerSettings = preload("res://source/data-model/PlayerSettings.gd")
 const LoadingScene = preload("res://source/main-menu/Loading.tscn")
+const Factions = preload("res://source/match/factions/Factions.gd")
 
 var _map_paths = []
+var _faction_option = FactionOption.new()
 
 @onready var _start_button = find_child("StartButton")
 @onready var _map_list = find_child("MapList")
@@ -12,11 +14,23 @@ var _map_paths = []
 
 
 func _ready():
+	_setup_faction_option()
 	_setup_map_list()
 	_on_map_list_item_selected(0)
 	var option_nodes = find_child("GridContainer").find_children("OptionButton*")
 	for option_node_id in range(option_nodes.size()):
 		option_nodes[option_node_id].item_selected.connect(_on_player_selected.bind(option_node_id))
+
+
+func _setup_faction_option():
+	var row = HBoxContainer.new()
+	var label = Label.new()
+	label.text = "Dein Volk:"
+	row.add_child(label)
+	_faction_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(_faction_option)
+	# unter die Spielerliste, damit das Fenster nicht höher wird
+	find_child("GridContainer").get_parent().add_child(row)
 
 
 func _setup_map_list():
@@ -41,6 +55,11 @@ func _create_match_settings():
 			player_settings.controller = player_controller
 			player_settings.color = Constants.Player.COLORS[option_node_id]
 			player_settings.spawn_index_offset = spawn_index_offset
+			player_settings.faction = (
+				_faction_option.get_faction()
+				if player_controller == Constants.PlayerType.HUMAN
+				else _faction_option.get_faction_for_ai()
+			)
 			match_settings.players.append(player_settings)
 			spawn_index_offset = 0
 		else:
@@ -109,3 +128,36 @@ func _on_map_list_item_selected(index):
 		[map["players"], map["size"].x, map["size"].y]
 	)
 	_align_player_controls_visibility_to_map(map)
+
+
+## Auswahl des Volks; "Zufall" würfelt beim Start, "Klassisch" spielt ohne Völker.
+class FactionOption:
+	extends OptionButton
+
+	const RANDOM = "random"
+
+	var _ids = []
+
+	func _init():
+		for faction in Factions.PLAYABLE:
+			var info = Factions.info(faction)
+			add_item("%s (%s)" % [info["name"], info["title"]])
+			_ids.append(faction)
+		add_item("Zufall")
+		_ids.append(RANDOM)
+		add_item("Klassisch (ohne Völker)")
+		_ids.append(Factions.CORE)
+
+	## Rohwahl: Volk, "random" oder "core"
+	func get_choice():
+		return _ids[selected]
+
+	func get_faction():
+		var faction = _ids[selected]
+		if faction == RANDOM:
+			return Factions.random_faction()
+		return "" if faction == Factions.CORE else faction
+
+	## KI spielt ein zufälliges Volk, außer im klassischen Modus.
+	func get_faction_for_ai():
+		return "" if _ids[selected] == Factions.CORE else Factions.random_faction()

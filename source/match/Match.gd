@@ -4,10 +4,12 @@ const Unit = preload("res://source/match/units/Unit.gd")
 const Structure = preload("res://source/match/units/Structure.gd")
 const Player = preload("res://source/match/players/Player.gd")
 const Human = preload("res://source/match/players/human/Human.gd")
+const Factions = preload("res://source/match/factions/Factions.gd")
 
 const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
 const Drone = preload("res://source/match/units/Drone.tscn")
 const Worker = preload("res://source/match/units/Worker.tscn")
+const Infantry = preload("res://source/match/units/Infantry.tscn")
 
 @export var settings: Resource = null
 
@@ -100,11 +102,11 @@ func _execute_command(player, kind, units, args):
 			if target_unit != null:
 				controller.execute_unit_targeted(units, target_unit)
 		"produce":
-			if not args[0] in Constants.Match.Units.PRODUCTION_COSTS:
+			if not args[0] is String or Factions.entry(args[0]).is_empty():
 				return
 			for unit in units:
 				if unit is Structure and unit.production_queue != null:
-					unit.production_queue.produce(load(args[0]))
+					unit.production_queue.produce(args[0])
 		"cancel_construction":
 			for unit in units:
 				if unit is Structure and unit.is_under_construction():
@@ -113,15 +115,18 @@ func _execute_command(player, kind, units, args):
 			_place_structure(player, controller, units, args[0], args[1])
 
 
-func _place_structure(player, controller, workers, scene_path, a_transform):
-	if not scene_path in Constants.Match.Units.CONSTRUCTION_COSTS:
+func _place_structure(player, controller, workers, variant, a_transform):
+	if not variant is String or not variant in Factions.buildable(player):
 		return
-	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[scene_path]
+	if not Factions.is_available(player, variant):
+		return
+	var construction_cost = Factions.cost(variant)
 	if not player.has_resources(construction_cost):
 		MatchSignals.not_enough_resources_for_construction.emit(player)
 		return
 	player.subtract_resources(construction_cost)
-	var structure = load(scene_path).instantiate()
+	var structure = load(Factions.entry(variant)["archetype"]).instantiate()
+	structure.variant = variant
 	_setup_and_spawn_unit(structure, a_transform, player)
 	controller.execute_construct(workers, structure)
 
@@ -206,6 +211,7 @@ func _create_players_from_settings():
 		player.color = player_settings.color
 		player.peer_id = player_settings.peer_id
 		player.team = player_settings.team
+		player.faction = player_settings.faction
 		# Gleiche Namen auf allen Rechnern, damit RPCs und Sync die Knoten finden
 		player.name = "Player%d" % player_id
 		if player_settings.spawn_index_offset > 0:
@@ -273,9 +279,16 @@ func _setup_player_units():
 
 func _spawn_player_units(player, spawn_transform):
 	_setup_and_spawn_unit(CommandCenter.instantiate(), spawn_transform, player, false)
-	_setup_and_spawn_unit(
-		Drone.instantiate(), spawn_transform.translated(Vector3(-2, 0, -2)), player
-	)
+	if Factions.faction_of(player) == Factions.CORE:
+		_setup_and_spawn_unit(
+			Drone.instantiate(), spawn_transform.translated(Vector3(-2, 0, -2)), player
+		)
+	else:
+		# Völker starten mit zwei Infanteristen statt der Aufklärungsdrohne
+		for offset in [Vector3(-2, 0, -2), Vector3(2, 0, -2)]:
+			_setup_and_spawn_unit(
+				Infantry.instantiate(), spawn_transform.translated(offset), player
+			)
 	_setup_and_spawn_unit(
 		Worker.instantiate(), spawn_transform.translated(Vector3(-3, 0, 3)), player
 	)
@@ -290,6 +303,9 @@ func _setup_and_spawn_unit(unit, a_transform, player, mark_structure_under_const
 		return
 	unit.name = "Unit%d" % _next_unit_id
 	_next_unit_id += 1
+	if unit.variant == "" and Factions.faction_of(player) != Factions.CORE:
+		# Szenen von KI und Startaufstellung: Standard-Variante des Volks
+		unit.variant = Factions.variant_for_player(player, unit.scene_file_path)
 	unit.global_transform = a_transform
 	if unit is Structure and mark_structure_under_construction:
 		unit.mark_as_under_construction()

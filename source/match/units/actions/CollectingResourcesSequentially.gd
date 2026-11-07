@@ -3,6 +3,7 @@ extends "res://source/match/units/actions/Action.gd"
 enum State { NULL, MOVING_TO_RESOURCE, COLLECTING, MOVING_TO_CC }
 
 const CommandCenter = preload("res://source/match/units/CommandCenter.gd")
+const Refinery = preload("res://source/match/units/Refinery.gd")
 const CollectingResourcesWhileInRange = preload(
 	"res://source/match/units/actions/CollectingResourcesWhileInRange.gd"
 )
@@ -22,14 +23,19 @@ var _sub_action = null
 static func is_applicable(source_unit, target_unit):
 	return (
 		(source_unit is Worker and target_unit is ResourceUnit)
-		or (source_unit is Worker and target_unit is CommandCenter and target_unit.is_constructed())
+		or (source_unit is Worker and _is_dropoff(target_unit) and target_unit.is_constructed())
 	)
+
+
+## Zentrale oder Raffinerie eines Volks nehmen Rohstoffe an.
+static func _is_dropoff(unit):
+	return unit is CommandCenter or unit is Refinery
 
 
 func _init(unit):
 	if unit is ResourceUnit:
 		_set_resource_unit(unit)
-	elif unit is CommandCenter:
+	elif _is_dropoff(unit):
 		_set_cc_unit(unit)
 
 
@@ -127,9 +133,7 @@ func _find_closest_resource_unit_in_nearby_area():
 static func _find_cc_closest_to_unit(unit):
 	var ccs_of_the_same_player = unit.get_tree().get_nodes_in_group("units").filter(
 		func(a_unit):
-			return (
-				a_unit is CommandCenter and a_unit.player == unit.player and a_unit.is_constructed()
-			)
+			return _is_dropoff(a_unit) and a_unit.player == unit.player and a_unit.is_constructed()
 	)
 	if ccs_of_the_same_player.is_empty():
 		return null

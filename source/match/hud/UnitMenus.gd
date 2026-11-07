@@ -1,22 +1,22 @@
 extends PanelContainer
 
-const VehicleFactory = preload("res://source/match/units/VehicleFactory.gd")
-const AircraftFactory = preload("res://source/match/units/AircraftFactory.gd")
-const CommandCenter = preload("res://source/match/units/CommandCenter.gd")
+const Structure = preload("res://source/match/units/Structure.gd")
 const Worker = preload("res://source/match/units/Worker.gd")
+const FactionMenu = preload("res://source/match/hud/unit-menus/FactionMenu.gd")
+
+var _faction_menu = FactionMenu.new()
 
 @onready var _generic_menu = find_child("GenericMenu")
-@onready var _command_center_menu = find_child("CommandCenterMenu")
-@onready var _vehicle_factory_menu = find_child("VehicleFactoryMenu")
-@onready var _aircraft_factory_menu = find_child("AircraftFactoryMenu")
-@onready var _worker_menu = find_child("WorkerMenu")
 
 
 func _ready():
+	_faction_menu.name = "FactionMenu"
+	find_child("MarginContainer").add_child(_faction_menu)
 	_reset_menus()
 	MatchSignals.unit_selected.connect(func(_unit): _reset_menus())
 	MatchSignals.unit_deselected.connect(func(_unit): _reset_menus())
 	MatchSignals.unit_died.connect(func(_unit): _reset_menus())
+	MatchSignals.unit_construction_finished.connect(func(_unit): _reset_menus())
 
 
 func _reset_menus():
@@ -29,10 +29,7 @@ func _reset_menus():
 
 func _hide_all_menus():
 	_generic_menu.hide()
-	_command_center_menu.hide()
-	_vehicle_factory_menu.hide()
-	_aircraft_factory_menu.hide()
-	_worker_menu.hide()
+	_faction_menu.hide()
 
 
 func _try_showing_any_menu():
@@ -41,30 +38,16 @@ func _try_showing_any_menu():
 	)
 	if (
 		selected_controlled_units.size() == 1
-		and selected_controlled_units[0] is CommandCenter
+		and selected_controlled_units[0] is Structure
 		and selected_controlled_units[0].is_constructed()
+		and _faction_menu.show_production(selected_controlled_units[0])
 	):
-		_command_center_menu.unit = selected_controlled_units[0]
-		_command_center_menu.show()
 		return true
 	if (
-		selected_controlled_units.size() == 1
-		and selected_controlled_units[0] is VehicleFactory
-		and selected_controlled_units[0].is_constructed()
+		not selected_controlled_units.is_empty()
+		and selected_controlled_units.all(func(unit): return unit is Worker)
 	):
-		_vehicle_factory_menu.unit = selected_controlled_units[0]
-		_vehicle_factory_menu.show()
-		return true
-	if (
-		selected_controlled_units.size() == 1
-		and selected_controlled_units[0] is AircraftFactory
-		and selected_controlled_units[0].is_constructed()
-	):
-		_aircraft_factory_menu.unit = selected_controlled_units[0]
-		_aircraft_factory_menu.show()
-		return true
-	if selected_controlled_units.size() == 1 and selected_controlled_units[0] is Worker:
-		_worker_menu.show()
+		_faction_menu.show_construction(selected_controlled_units[0].player)
 	if selected_controlled_units.size() > 0:
 		_generic_menu.units = selected_controlled_units
 		_generic_menu.show()

@@ -2,6 +2,7 @@ extends Node
 
 signal resources_required(resources, metadata)
 
+const Factions = preload("res://source/match/factions/Factions.gd")
 const Worker = preload("res://source/match/units/Worker.gd")
 const CommandCenter = preload("res://source/match/units/CommandCenter.gd")
 const AGTurret = preload("res://source/match/units/AntiGroundTurret.gd")
@@ -36,7 +37,7 @@ func provision(resources, metadata):
 	)
 	if metadata == "ag_turret":
 		assert(
-			resources == Constants.Match.Units.CONSTRUCTION_COSTS[AGTurretScene.resource_path],
+			resources == Factions.cost_for(_player, AGTurretScene.resource_path),
 			"unexpected amount of resources"
 		)
 		_number_of_pending_ag_turret_resource_requests -= 1
@@ -45,7 +46,7 @@ func provision(resources, metadata):
 		_construct_turret(AGTurretScene)
 	elif metadata == "aa_turret":
 		assert(
-			resources == Constants.Match.Units.CONSTRUCTION_COSTS[AATurretScene.resource_path],
+			resources == Factions.cost_for(_player, AATurretScene.resource_path),
 			"unexpected amount of resources"
 		)
 		_number_of_pending_aa_turret_resource_requests -= 1
@@ -90,7 +91,7 @@ func _enforce_number_of_ag_turrets():
 	)
 	for _i in range(number_of_extra_ag_turrets_required):
 		resources_required.emit(
-			Constants.Match.Units.CONSTRUCTION_COSTS[AGTurretScene.resource_path], "ag_turret"
+			Factions.cost_for(_player, AGTurretScene.resource_path), "ag_turret"
 		)
 		_number_of_pending_ag_turret_resource_requests += 1
 
@@ -110,13 +111,13 @@ func _enforce_number_of_aa_turrets():
 	)
 	for _i in range(number_of_extra_aa_turrets_required):
 		resources_required.emit(
-			Constants.Match.Units.CONSTRUCTION_COSTS[AATurretScene.resource_path], "aa_turret"
+			Factions.cost_for(_player, AATurretScene.resource_path), "aa_turret"
 		)
 		_number_of_pending_aa_turret_resource_requests += 1
 
 
 func _construct_turret(turret_scene):
-	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[turret_scene.resource_path]
+	var construction_cost = Factions.cost_for(_player, turret_scene.resource_path)
 	assert(
 		_player.has_resources(construction_cost),
 		"player should have enough resources at this point"

@@ -1,7 +1,9 @@
 ## Ersetzt das 3D-Modell einer Einheit durch ein Pixel-Art-Sprite mit 8 Blickrichtungen.
-## Die Spritesheets erzeugt tools/make_sprites.py (assets/sprites/units/<Typ>.png).
+## Die Spritesheets erzeugt tools/make_sprites.py (assets/sprites/units/<Typ>.png bzw.
+## <volk>_<variante>.png für eigene Sprites einer Volks-Variante).
 extends MeshInstance3D
 
+const Factions = preload("res://source/match/factions/Factions.gd")
 const SHADER = preload("res://source/shaders/3d/pixel_sprite.gdshader")
 const SPRITE_DIR = "res://assets/sprites/units/"
 const DIRECTIONS = 8
@@ -17,15 +19,62 @@ const BASELINES = {
 	"AircraftFactory": 44,
 	"AntiGroundTurret": 22,
 	"AntiAirTurret": 22,
+	"Infantry": 24,
+	"Barracks": 44,
+	"PowerPlant": 44,
+	"Refinery": 44,
+	"Facility": 44,
 }
 
 var _unit = null
 var _material = null
 
 
+## Sprite der Volks-Variante (z. B. shibas_tesla.png), sonst das des Archetyps.
+static func sprite_path_for(variant, type):
+	if variant != "":
+		var variant_path = SPRITE_DIR + variant.replace("/", "_") + ".png"
+		if ResourceLoader.exists(variant_path):
+			return variant_path
+	var type_path = SPRITE_DIR + type + ".png"
+	return type_path if ResourceLoader.exists(type_path) else ""
+
+
+## Ein Bild (schräge Ansicht) einer Variante als Icon für Menüs, Magenta in Teamfarbe.
+static func icon_for(variant, team_color = Color(0.85, 0.85, 0.85)):
+	var e = Factions.entry(variant)
+	if e.is_empty():
+		return null
+	var type = e["archetype"].get_file().get_basename()
+	var path = sprite_path_for(variant, type)
+	if path == "":
+		return null
+	var sheet = load(path).get_image()
+	if sheet.is_compressed():
+		sheet.decompress()
+	var size = sheet.get_height()
+	var image = sheet.get_region(Rect2i(size, 0, size, size))
+	image.convert(Image.FORMAT_RGBA8)
+	for y in range(size):
+		for x in range(size):
+			var pixel = image.get_pixel(x, y)
+			if pixel.a > 0.0 and is_equal_approx(pixel.r, pixel.b) and pixel.g == 0.0:
+				var tinted = team_color * pixel.r
+				tinted.a = pixel.a
+				image.set_pixel(x, y, tinted)
+	# Auf den sichtbaren Inhalt zuschneiden, damit kleine Sprites (Infanterie) groß wirken
+	var used = image.get_used_rect()
+	if used.size.x > 0 and used.size.y > 0:
+		var side = max(used.size.x, used.size.y)
+		var square = Image.create(side, side, false, Image.FORMAT_RGBA8)
+		square.blit_rect(image, used, Vector2i((side - used.size.x) / 2, (side - used.size.y) / 2))
+		image = square
+	return ImageTexture.create_from_image(image)
+
+
 static func try_attach(unit):
-	var path = SPRITE_DIR + unit.type + ".png"
-	if not ResourceLoader.exists(path):
+	var path = sprite_path_for(unit.variant, unit.type)
+	if path == "":
 		return null
 	var sprite = new()
 	sprite.name = "PixelSprite"
