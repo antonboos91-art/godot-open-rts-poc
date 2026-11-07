@@ -11,6 +11,7 @@ var _status_label = Label.new()
 var _players_label = Label.new()
 var _map_option = OptionButton.new()
 var _ai_check = CheckBox.new()
+var _coop_check = CheckBox.new()
 var _start_button = Button.new()
 var _back_button = Button.new()
 
@@ -77,6 +78,10 @@ func _build_ui():
 	_ai_check.button_pressed = true
 	box.add_child(_ai_check)
 
+	_coop_check.text = "Team up: all humans vs AI"
+	_coop_check.button_pressed = true
+	box.add_child(_coop_check)
+
 	_start_button.text = "START"
 	_start_button.pressed.connect(_on_start_pressed)
 	box.add_child(_start_button)
@@ -95,6 +100,7 @@ func _refresh():
 	_address_edit.editable = not online
 	_map_option.visible = is_host
 	_ai_check.visible = is_host
+	_coop_check.visible = is_host
 	_start_button.visible = is_host
 	if is_host:
 		var addresses = Network.lan_addresses()
@@ -130,7 +136,9 @@ func _on_join_pressed():
 
 
 func _on_start_pressed():
-	Network.start_match(_map_paths[_map_option.selected], _ai_check.button_pressed)
+	Network.start_match(
+		_map_paths[_map_option.selected], _ai_check.button_pressed, _coop_check.button_pressed
+	)
 
 
 func _on_connection_failed():

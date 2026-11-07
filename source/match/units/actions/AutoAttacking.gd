@@ -14,7 +14,7 @@ static func is_applicable(source_unit, target_unit):
 	return (
 		source_unit.attack_range != null
 		and "player" in target_unit
-		and source_unit.player != target_unit.player
+		and not source_unit.player.is_ally_of(target_unit.player)
 		and target_unit.movement_domain in source_unit.attack_domains
 	)
 

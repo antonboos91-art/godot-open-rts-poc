@@ -57,11 +57,19 @@ func _on_unit_tree_exited():
 	var human_players = get_tree().get_nodes_in_group("players").filter(
 		func(player): return player is Human and player.is_local()
 	)
+	var remaining = players.iterate().keys()
 	if not human_players.is_empty() and not players.has(human_players[0]):
 		_handle_defeat()
-	elif not human_players.is_empty() and players.has(human_players[0]) and players.size() == 1:
+	elif (
+		not human_players.is_empty()
+		and remaining.all(func(player): return player.is_ally_of(human_players[0]))
+	):
 		_handle_victory()
-	elif players.size() == 1:
+	elif (
+		human_players.is_empty()
+		and not remaining.is_empty()
+		and remaining.all(func(player): return player.is_ally_of(remaining[0]))
+	):
 		_handle_finish()
 
 

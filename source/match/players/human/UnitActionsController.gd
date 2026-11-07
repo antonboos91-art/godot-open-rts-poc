@@ -116,10 +116,7 @@ func _navigate_unit_towards_unit(unit, target_unit):
 	if Actions.Constructing.is_applicable(unit, target_unit):
 		unit.action = Actions.Constructing.new(target_unit)
 		return true
-	if (
-		(target_unit.is_in_group("adversary_units") or target_unit.is_in_group("controlled_units"))
-		and Actions.Following.is_applicable(unit)
-	):
+	if target_unit.is_in_group("units") and Actions.Following.is_applicable(unit):
 		unit.action = Actions.Following.new(target_unit)
 		return true
 	if Actions.MovingToUnit.is_applicable(unit):

@@ -82,7 +82,8 @@ func lan_addresses():
 
 
 ## Nur Host: verteilt die Spieler auf die Slots der Karte und startet bei allen.
-func start_match(map_path, fill_free_slots_with_ai = true):
+## Mit humans_vs_ai spielen alle Menschen in Team 1 gegen die KIs in Team 2.
+func start_match(map_path, fill_free_slots_with_ai = true, humans_vs_ai = false):
 	assert(multiplayer.is_server(), "only host can start a match")
 	var slots = Constants.Match.MAPS[map_path]["players"]
 	var peer_ids = peers.keys()
@@ -90,8 +91,16 @@ func start_match(map_path, fill_free_slots_with_ai = true):
 	var players = []
 	for slot in range(slots):
 		if slot < peer_ids.size():
-			players.append(
-				{"controller": Constants.PlayerType.HUMAN, "peer_id": peer_ids[slot], "slot": slot}
+			(
+				players
+				. append(
+					{
+						"controller": Constants.PlayerType.HUMAN,
+						"peer_id": peer_ids[slot],
+						"slot": slot,
+						"team": 1 if humans_vs_ai else 0,
+					}
+				)
 			)
 		elif fill_free_slots_with_ai:
 			players.append(
@@ -127,6 +136,7 @@ func _start_match(map_path, players):
 		var player_settings = PlayerSettings.new()
 		player_settings.controller = players[player_id]["controller"]
 		player_settings.peer_id = players[player_id]["peer_id"]
+		player_settings.team = players[player_id].get("team", 0)
 		player_settings.color = Constants.Player.COLORS[players[player_id]["slot"]]
 		match_settings.players.append(player_settings)
 		if player_settings.peer_id == multiplayer.get_unique_id():
