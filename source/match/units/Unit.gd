@@ -43,6 +43,16 @@ var _action_locked = false
 @onready var _match = find_parent("Match")
 
 
+func _init():
+	var replicated_properties = [":position", ":rotation", ":hp", ":hp_max"]
+	if "_construction_progress" in self:
+		replicated_properties.append(":_construction_progress")
+	var synchronizer = MultiplayerSynchronizer.new()
+	synchronizer.name = "UnitSynchronizer"
+	synchronizer.replication_config = Utils.Net.replication_config(replicated_properties)
+	add_child(synchronizer)
+
+
 func _ready():
 	if not _match.is_node_ready():
 		await _match.ready
@@ -107,7 +117,8 @@ func _setup_color():
 
 
 func _set_action(action_node):
-	if not is_inside_tree() or _action_locked:
+	# Aktionen (Bewegen, Angreifen, ...) laufen nur auf dem Host.
+	if not is_inside_tree() or _action_locked or Network.is_client():
 		if action_node != null:
 			action_node.queue_free()
 		return
@@ -160,7 +171,9 @@ func _safety_checks():
 
 func _handle_unit_death():
 	tree_exited.connect(func(): MatchSignals.unit_died.emit(self))
-	queue_free()
+	# Auf Clients entfernt der MultiplayerSpawner die Einheit.
+	if not Network.is_client():
+		queue_free()
 
 
 func _setup_default_properties_from_constants():
@@ -168,6 +181,9 @@ func _setup_default_properties_from_constants():
 		get_script().resource_path.replace(".gd", ".tscn")
 	]
 	for property in default_properties:
+		# Auf Clients kamen hp/hp_max evtl. schon vom Host
+		if Network.is_client() and property in ["hp", "hp_max"] and get(property) != null:
+			continue
 		set(property, default_properties[property])
 
 

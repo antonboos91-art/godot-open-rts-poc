@@ -80,3 +80,17 @@ class RouletteWheel:
 				return value
 		assert(false, "unexpected flow")
 		return -1
+
+
+class Net:
+	## Replikationskonfiguration: Eigenschaften werden beim Spawnen und bei Änderungen
+	## vom Host an die Clients geschickt.
+	static func replication_config(property_paths):
+		var config = SceneReplicationConfig.new()
+		for property_path in property_paths:
+			config.add_property(property_path)
+			config.property_set_spawn(property_path, true)
+			config.property_set_replication_mode(
+				property_path, SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE
+			)
+		return config

@@ -51,6 +51,10 @@ func _physics_process(delta):
 
 
 func _ready():
+	# Clients bewegen nichts selbst, Positionen kommen vom Host.
+	if Network.is_client():
+		set_physics_process(false)
+		return
 	if _match.navigation == null:
 		await _match.ready
 	velocity_computed.connect(_on_velocity_computed)

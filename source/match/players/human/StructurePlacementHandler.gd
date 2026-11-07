@@ -196,14 +196,13 @@ func _cancel_structure_placement():
 
 func _finish_structure_placement():
 	if _player_has_enough_resources():
-		var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
-			_pending_structure_prototype.resource_path
-		]
-		_player.subtract_resources(construction_cost)
-		MatchSignals.setup_and_spawn_unit.emit(
-			_pending_structure_prototype.instantiate(),
-			_active_blueprint_node.global_transform,
-			_player
+		var selected_workers = get_tree().get_nodes_in_group("selected_units").filter(
+			func(unit): return unit.is_in_group("controlled_units")
+		)
+		find_parent("Match").send_command(
+			"place_structure",
+			selected_workers,
+			[_pending_structure_prototype.resource_path, _active_blueprint_node.global_transform]
 		)
 	_cancel_structure_placement()
 
