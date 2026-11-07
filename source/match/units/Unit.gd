@@ -6,6 +6,8 @@ signal hp_changed
 signal action_changed(new_action)
 signal action_updated
 
+const PixelSprite = preload("res://source/match/units/traits/PixelSprite.gd")
+
 const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
 const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
 
@@ -57,6 +59,7 @@ func _ready():
 	if not _match.is_node_ready():
 		await _match.ready
 	_setup_color()
+	PixelSprite.try_attach(self)
 	_setup_default_properties_from_constants()
 	assert(_safety_checks())
 
