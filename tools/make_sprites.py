@@ -284,6 +284,22 @@ SHIBAS_UNITS = {
         box(3, 0, 2, 2, 8, 5, TEAM),
         box(0, 4, 2, 2, 5, 1, GLASS),  # Schnüffelsensor
     ],
+    "ingenieur": INFANTRY
+    + SHIBA_EARS
+    + [
+        box(0, -2, 6, 3, 5, 4, HAZARD),  # Werkzeugrucksack
+        box(4, 4, 1, 5, 6, 1, STEEL),  # Schraubenschlüssel
+        box(0, 0, 6, 6, 11, 1, HAZARD),  # Bauhelm
+    ],
+    "baumobil": [
+        box(-6, 0, 4, 22, 0, 3, BLACK),
+        box(6, 0, 4, 22, 0, 3, BLACK),
+        box(0, 0, 10, 20, 2, 3, STEEL),
+        box(0, -2, 9, 12, 5, 6, TEAM_DARK),  # gefaltete Zentrale
+        box(0, -2, 9, 4, 11, 1, TEAM),
+        box(0, 7, 8, 4, 5, 3, GLASS),
+        box(-3, -8, 2, 2, 11, 5, STEEL_DARK),
+    ],
     "sammler": with_ears(WORKER, 6, 8, 3, 2, 3),
     "buggy": [
         cyl(-6, 7, 3, 0, 3, BLACK, segments=8),
@@ -391,6 +407,16 @@ SHIBAS_BUILDINGS = {
         cyl(0, -2, 6, 14, 2, TEAM, segments=12),
         box(-14, 12, 6, 6, 3, 10, STEEL_DARK),
     ],
+    "superweapon": [
+        box(0, 0, 40, 36, 0, 3, CONCRETE),
+        box(0, -4, 22, 18, 3, 6, STEEL_DARK),
+        cyl(0, 0, 15, 9, 1, STEEL, segments=18),  # Satellitenschüssel zum Himmel
+        cyl(0, 0, 12, 10, 1, TEAM, segments=18),
+        box(0, 0, 2, 2, 11, 12, STEEL_DARK),
+        cyl(0, 0, 3, 23, 3, GLASS, segments=10),
+        box(-16, 12, 4, 4, 3, 6, HAZARD),
+        box(16, 12, 4, 4, 3, 6, HAZARD),
+    ],
     "turret_ground": [
         box(0, 0, 18, 18, 0, 5, CONCRETE),
         box(0, 0, 4, 4, 5, 12, STEEL_DARK),  # Zapper-Mast
@@ -411,6 +437,8 @@ SHIBAS_SHEETS = {
     "trooper": (32, 24),
     "zapper": (32, 24),
     "schnueffler": (32, 24),
+    "ingenieur": (32, 24),
+    "baumobil": (32, 22),
     "sammler": (32, 22),
     "buggy": (32, 22),
     "tesla": (32, 22),

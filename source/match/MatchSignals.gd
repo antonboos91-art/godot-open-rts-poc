@@ -5,6 +5,7 @@ signal deselect_all_units
 signal setup_and_spawn_unit(unit, transform, player)
 signal place_structure(variant)  # Volks-Variante, z. B. "shibas/power"
 signal schedule_navigation_rebake(domain)
+signal superweapon_targeting_requested(structure)
 signal navigate_unit_to_rally_point(unit, rally_point)  # currently, only for human players
 
 # notifications

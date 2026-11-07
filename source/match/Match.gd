@@ -113,6 +113,15 @@ func _execute_command(player, kind, units, args):
 					unit.cancel_construction()
 		"place_structure":
 			_place_structure(player, controller, units, args[0], args[1])
+		"deploy":
+			for unit in units:
+				_deploy(player, unit)
+		"superweapon":
+			if not args[0] is Vector3:
+				return
+			for unit in units:
+				if unit.has_method("fire_superweapon"):
+					unit.fire_superweapon(args[0])
 
 
 func _place_structure(player, controller, workers, variant, a_transform):
@@ -129,6 +138,110 @@ func _place_structure(player, controller, workers, variant, a_transform):
 	structure.variant = variant
 	_setup_and_spawn_unit(structure, a_transform, player)
 	controller.execute_construct(workers, structure)
+
+
+## Bau-Mobil entfaltet sich an Ort und Stelle zur fertigen Zentrale seines Volks.
+func _deploy(_player, unit):
+	if Factions.ability(Factions.variant_of(unit)) != "deploy":
+		return
+	var hq_variant = Factions.deploy_target(Factions.variant_of(unit))
+	var hq_scene = load(Factions.entry(hq_variant)["archetype"])
+	var prototype = hq_scene.instantiate()
+	var others = (
+		get_tree().get_nodes_in_group("units").filter(func(other): return other != unit)
+		+ get_tree().get_nodes_in_group("resource_units")
+	)
+	var validity = Utils.Match.Unit.Placement.validate_agent_placement_position(
+		unit.global_position,
+		prototype.radius,
+		others,
+		navigation.get_navigation_map_rid_by_domain(prototype.movement_domain)
+	)
+	prototype.free()
+	if validity != Utils.Match.Unit.Placement.VALID:
+		_notify(unit.global_position, "Kein Platz zum Entfalten")
+		return
+	var hq = hq_scene.instantiate()
+	hq.variant = hq_variant
+	_setup_and_spawn_unit(hq, Transform3D(Basis(), unit.global_position), unit.player, false)
+	unit._handle_unit_death()
+
+
+## Ein Ingenieur übernimmt ein Gebäude: Es wird für den neuen Besitzer neu erzeugt
+## (die Spawner hängen am Besitzer), der Ingenieur geht dabei auf.
+func capture_structure(structure, capturer):
+	if Network.is_client():
+		return
+	var hp_fraction = float(structure.hp) / float(structure.hp_max)
+	var variant = Factions.variant_of(structure)
+	var replacement = load(Factions.entry(variant)["archetype"]).instantiate()
+	replacement.variant = structure.variant
+	_setup_and_spawn_unit(replacement, structure.global_transform, capturer.player, false)
+	structure._handle_unit_death()
+	capturer._handle_unit_death()
+	await get_tree().process_frame
+	if is_instance_valid(replacement) and replacement.hp_max != null:
+		replacement.hp = max(1, int(replacement.hp_max * hp_fraction))
+
+
+func _notify(position, text):
+	if Network.is_online():
+		show_notice.rpc(position, text)
+	else:
+		show_notice(position, text)
+
+
+## Kurzer Hinweistext über einer Stelle der Karte (z. B. "Kein Platz").
+@rpc("authority", "call_local", "reliable")
+func show_notice(position, text):
+	var label = Label3D.new()
+	label.text = text
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.modulate = Color(1.0, 0.4, 0.3)
+	label.pixel_size = 0.012
+	label.position = position + Vector3(0, 3.0, 0)
+	add_child(label)
+	get_tree().create_timer(1.5).timeout.connect(label.queue_free)
+
+
+## Blitz, Rakete usw. einer Superwaffe: kurzer Lichteffekt auf allen Rechnern.
+@rpc("authority", "call_local", "unreliable")
+func show_strike(position, radius):
+	var flash = MeshInstance3D.new()
+	var mesh = CylinderMesh.new()
+	mesh.top_radius = radius * 0.15
+	mesh.bottom_radius = radius * 0.15
+	mesh.height = 60.0
+	flash.mesh = mesh
+	var material = StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.albedo_color = Color(0.85, 0.95, 1.0, 1.0)
+	flash.material_override = material
+	flash.position = position + Vector3(0, 30, 0)
+	flash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(flash)
+	var ring = MeshInstance3D.new()
+	var ring_mesh = CylinderMesh.new()
+	ring_mesh.top_radius = radius
+	ring_mesh.bottom_radius = radius
+	ring_mesh.height = 0.1
+	ring.mesh = ring_mesh
+	var ring_material = material.duplicate()
+	ring_material.albedo_color = Color(0.6, 0.85, 1.0, 0.6)
+	ring.material_override = ring_material
+	ring.position = position + Vector3(0, 0.15, 0)
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(ring)
+	var tween = create_tween().set_parallel(true)
+	tween.tween_property(material, "albedo_color:a", 0.0, 0.7)
+	tween.tween_property(ring_material, "albedo_color:a", 0.0, 1.2)
+	tween.chain().tween_callback(
+		func():
+			flash.queue_free()
+			ring.queue_free()
+	)
 
 
 func _unhandled_input(event):
@@ -234,7 +347,10 @@ func _setup_static_synchronizers():
 ## UnitActionsController bleibt, um seine Befehle auszuführen.
 func _strip_local_input_from_remote_human(player):
 	for child_name in [
-		"StructurePlacementHandler", "VoiceNarratorController", "UnitVoicesController"
+		"StructurePlacementHandler",
+		"SuperweaponHandler",
+		"VoiceNarratorController",
+		"UnitVoicesController"
 	]:
 		var child = player.get_node_or_null(child_name)
 		if child != null:
