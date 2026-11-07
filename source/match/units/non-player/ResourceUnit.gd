@@ -10,6 +10,16 @@ var global_position_yless:
 		return global_position * Vector3(1, 0, 1)
 
 
+## Siehe Player.add_synchronizer()
+func add_synchronizer():
+	var synchronizer = MultiplayerSynchronizer.new()
+	synchronizer.name = "ResourceSynchronizer"
+	synchronizer.replication_config = Utils.Net.replication_config(
+		[":resource_a"] if "resource_a" in self else [":resource_b"]
+	)
+	add_child(synchronizer)
+
+
 func _enter_tree():
 	tree_exiting.connect(_animate_decay)
 

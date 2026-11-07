@@ -43,6 +43,9 @@ func get_elements():
 
 
 func produce(unit_prototype, ignore_limit = false):
+	if Network.is_client():
+		find_parent("Match").send_command("produce", [_unit], [unit_prototype.resource_path])
+		return
 	if not ignore_limit and _queue.size() >= Constants.Match.Units.PRODUCTION_QUEUE_LIMIT:
 		return
 	var production_cost = Constants.Match.Units.PRODUCTION_COSTS[unit_prototype.resource_path]

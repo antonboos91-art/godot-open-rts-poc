@@ -12,7 +12,26 @@ signal changed
 		emit_changed()
 @export var color = Color.WHITE
 
+## Multiplayer-Peer, der diesen Spieler steuert (0 = KI bzw. lokal im Einzelspieler).
+var peer_id = 0
+
 var _color_material = null
+
+
+## Ressourcen vom Host an Clients spiegeln. Wird von Match aufgerufen, auf dem Host
+## erst wenn alle Clients ihre Match-Szene geladen haben.
+func add_synchronizer():
+	var synchronizer = MultiplayerSynchronizer.new()
+	synchronizer.name = "ResourcesSynchronizer"
+	synchronizer.replication_config = Utils.Net.replication_config([":resource_a", ":resource_b"])
+	add_child(synchronizer)
+
+
+## true, wenn dieser Spieler auf diesem Rechner gesteuert wird.
+func is_local():
+	if not Network.is_online():
+		return true
+	return peer_id == multiplayer.get_unique_id()
 
 
 func add_resources(resources):

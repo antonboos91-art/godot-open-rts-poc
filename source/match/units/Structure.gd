@@ -6,7 +6,8 @@ const UNDER_CONSTRUCTION_MATERIAL = preload(
 	"res://source/match/resources/materials/structure_under_construction.material.tres"
 )
 
-var _construction_progress = 1.0
+var _construction_progress = 1.0:
+	set = _set_construction_progress
 
 @onready var production_queue = find_child("ProductionQueue"):
 	set(_value):
@@ -39,6 +40,9 @@ func construct(progress):
 
 
 func cancel_construction():
+	if Network.is_client():
+		find_parent("Match").send_command("cancel_construction", [self])
+		return
 	var scene_path = get_script().resource_path.replace(".gd", ".tscn")
 	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[scene_path]
 	player.add_resources(construction_cost)
@@ -64,3 +68,15 @@ func _change_geometry_material(material):
 	for child in find_child("Geometry").find_children("*"):
 		if "material_override" in child:
 			child.material_override = material
+
+
+## Auf Clients kommt der Baufortschritt vom Host; Material entsprechend anpassen.
+func _set_construction_progress(value):
+	var was_constructed = _construction_progress >= 1.0
+	_construction_progress = value
+	if not Network.is_client():
+		return
+	if was_constructed and value < 1.0:
+		_change_geometry_material(UNDER_CONSTRUCTION_MATERIAL)
+	elif not was_constructed and value >= 1.0:
+		_finish_construction()

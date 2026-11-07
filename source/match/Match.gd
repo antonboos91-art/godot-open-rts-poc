@@ -20,6 +20,8 @@ var visible_players = null:
 	set = _ignore,
 	get = _get_visible_players
 
+var _next_unit_id = 1
+
 @onready var navigation = $Navigation
 @onready var fog_of_war = $FogOfWar
 
@@ -37,12 +39,91 @@ func _ready():
 	MatchSignals.setup_and_spawn_unit.connect(_setup_and_spawn_unit)
 	_setup_subsystems_dependent_on_map()
 	_setup_players()
-	_setup_player_units()
+	_setup_unit_spawners()
 	visible_player = get_tree().get_nodes_in_group("players")[settings.visible_player]
-	_move_camera_to_initial_position()
 	if settings.visibility == settings.Visibility.FULL:
 		fog_of_war.reveal()
+	if Network.is_client():
+		# Einheiten kommen vom Host über die MultiplayerSpawner
+		_setup_static_synchronizers()
+		_move_camera_to_spawn_point_of(_get_human_player())
+		Network.report_match_ready()
+	else:
+		if Network.is_online():
+			if not Network.are_all_clients_ready_for_match():
+				await Network.all_clients_ready_for_match
+			# Erst jetzt, sonst kennen Clients die Knotenpfade noch nicht
+			_setup_static_synchronizers()
+		_setup_player_units()
+		_move_camera_to_initial_position()
 	MatchSignals.match_started.emit()
+
+
+## Einheitlicher Weg für Spielerbefehle. Auf dem Host direkt ausgeführt,
+## auf Clients per RPC an den Host geschickt.
+func send_command(kind, units, args = []):
+	if Network.is_client():
+		var unit_paths = units.map(func(unit): return get_path_to(unit))
+		_receive_command.rpc_id(1, kind, unit_paths, args)
+	else:
+		_execute_command(_get_human_player(), kind, units, args)
+
+
+@rpc("any_peer", "reliable")
+func _receive_command(kind, unit_paths, args):
+	if not multiplayer.is_server():
+		return
+	var sender = multiplayer.get_remote_sender_id()
+	var players = get_tree().get_nodes_in_group("players").filter(
+		func(player): return player is Human and player.peer_id == sender
+	)
+	if players.is_empty():
+		return
+	var player = players[0]
+	var units = []
+	for unit_path in unit_paths:
+		var unit = get_node_or_null(unit_path)
+		if unit != null and unit is Unit and unit.player == player:
+			units.append(unit)
+	_execute_command(player, kind, units, args)
+
+
+func _execute_command(player, kind, units, args):
+	if player == null:
+		return
+	var controller = player.find_child("UnitActionsController")
+	match kind:
+		"terrain":
+			controller.execute_terrain_targeted(units, args[0])
+		"unit":
+			var target_unit = get_node_or_null(args[0])
+			if target_unit != null:
+				controller.execute_unit_targeted(units, target_unit)
+		"produce":
+			if not args[0] in Constants.Match.Units.PRODUCTION_COSTS:
+				return
+			for unit in units:
+				if unit is Structure and unit.production_queue != null:
+					unit.production_queue.produce(load(args[0]))
+		"cancel_construction":
+			for unit in units:
+				if unit is Structure and unit.is_under_construction():
+					unit.cancel_construction()
+		"place_structure":
+			_place_structure(player, controller, units, args[0], args[1])
+
+
+func _place_structure(player, controller, workers, scene_path, a_transform):
+	if not scene_path in Constants.Match.Units.CONSTRUCTION_COSTS:
+		return
+	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[scene_path]
+	if not player.has_resources(construction_cost):
+		MatchSignals.not_enough_resources_for_construction.emit(player)
+		return
+	player.subtract_resources(construction_cost)
+	var structure = load(scene_path).instantiate()
+	_setup_and_spawn_unit(structure, a_transform, player)
+	controller.execute_construct(workers, structure)
 
 
 func _unhandled_input(event):
@@ -104,14 +185,72 @@ func _setup_players():
 
 
 func _create_players_from_settings():
-	for player_settings in settings.players:
-		var player_scene = Constants.Match.Player.CONTROLLER_SCENES[player_settings.controller]
-		var player = player_scene.instantiate()
+	for player_id in range(settings.players.size()):
+		var player_settings = settings.players[player_id]
+		var player = null
+		if Network.is_client() and player_settings.controller != Constants.PlayerType.HUMAN:
+			# KI läuft nur auf dem Host; Clients brauchen nur den Spieler-Knoten.
+			player = Player.new()
+		else:
+			var player_scene = Constants.Match.Player.CONTROLLER_SCENES[player_settings.controller]
+			player = player_scene.instantiate()
+			if (
+				Network.is_online()
+				and player is Human
+				and player_settings.peer_id != multiplayer.get_unique_id()
+			):
+				_strip_local_input_from_remote_human(player)
 		player.color = player_settings.color
+		player.peer_id = player_settings.peer_id
+		# Gleiche Namen auf allen Rechnern, damit RPCs und Sync die Knoten finden
+		player.name = "Player%d" % player_id
 		if player_settings.spawn_index_offset > 0:
-			for _i in range(player_settings.spawn_index_offset):
-				_players.add_child(Node.new())
+			for i in range(player_settings.spawn_index_offset):
+				var gap = Node.new()
+				gap.name = "Gap%d_%d" % [player_id, i]
+				_players.add_child(gap)
 		_players.add_child(player)
+
+
+## Synchronizer für Knoten, die es auf allen Rechnern schon gibt (Spieler, Rohstoffe).
+func _setup_static_synchronizers():
+	for player in get_tree().get_nodes_in_group("players"):
+		player.add_synchronizer()
+	for resource_unit in get_tree().get_nodes_in_group("resource_units"):
+		resource_unit.add_synchronizer()
+
+
+## Ein entfernter Mensch auf dem Host: keine lokale Eingabe/Sprachausgabe, nur
+## UnitActionsController bleibt, um seine Befehle auszuführen.
+func _strip_local_input_from_remote_human(player):
+	for child_name in [
+		"StructurePlacementHandler", "VoiceNarratorController", "UnitVoicesController"
+	]:
+		var child = player.get_node_or_null(child_name)
+		if child != null:
+			player.remove_child(child)
+			child.queue_free()
+
+
+func _setup_unit_spawners():
+	if not Network.is_online():
+		return
+	for player in _players.get_children():
+		if not player is Player:
+			continue
+		var spawner = MultiplayerSpawner.new()
+		spawner.name = "UnitSpawner"
+		spawner.spawn_path = NodePath("..")
+		for scene_path in Constants.Match.Units.DEFAULT_PROPERTIES:
+			spawner.add_spawnable_scene(scene_path)
+		spawner.spawned.connect(_on_unit_replicated)
+		player.add_child(spawner)
+
+
+## Client: eine vom Host gespawnte Einheit ist angekommen.
+func _on_unit_replicated(unit):
+	_setup_unit_groups(unit, unit.player)
+	MatchSignals.unit_spawned.emit(unit)
 
 
 func _setup_player_units():
@@ -142,6 +281,11 @@ func _spawn_player_units(player, spawn_transform):
 
 
 func _setup_and_spawn_unit(unit, a_transform, player, mark_structure_under_construction = true):
+	if Network.is_client():
+		unit.queue_free()
+		return
+	unit.name = "Unit%d" % _next_unit_id
+	_next_unit_id += 1
 	unit.global_transform = a_transform
 	if unit is Structure and mark_structure_under_construction:
 		unit.mark_as_under_construction()
@@ -162,9 +306,9 @@ func _setup_unit_groups(unit, player):
 
 func _get_human_player():
 	var human_players = get_tree().get_nodes_in_group("players").filter(
-		func(player): return player is Human
+		func(player): return player is Human and player.is_local()
 	)
-	assert(human_players.size() <= 1, "more than one human player is not allowed")
+	assert(human_players.size() <= 1, "more than one local human player is not allowed")
 	if not human_players.is_empty():
 		return human_players[0]
 	return null
@@ -176,6 +320,13 @@ func _move_camera_to_initial_position():
 		_move_camera_to_player_units_crowd_pivot(human_player)
 	else:
 		_move_camera_to_player_units_crowd_pivot(get_tree().get_nodes_in_group("players")[0])
+
+
+func _move_camera_to_spawn_point_of(player):
+	if player == null:
+		return
+	var spawn_point = map.find_child("SpawnPoints").get_child(player.get_index())
+	_camera.set_position_safely(spawn_point.global_position)
 
 
 func _move_camera_to_player_units_crowd_pivot(player):

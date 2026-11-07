@@ -16,7 +16,7 @@ func _ready():
 	_defeat_tile.hide()
 	_finish_tile.hide()
 	await find_parent("Match").ready
-	MatchSignals.setup_and_spawn_unit.connect(_on_new_unit)
+	MatchSignals.unit_spawned.connect(_on_new_unit)
 	for unit in get_tree().get_nodes_in_group("units"):
 		unit.tree_exited.connect(_on_unit_tree_exited)
 
@@ -40,10 +40,11 @@ func _handle_finish():
 
 func _show():
 	show()
-	get_tree().paused = true
+	# Online läuft die Partie für die anderen weiter
+	get_tree().paused = not Network.is_online()
 
 
-func _on_new_unit(unit, _transform, _player):
+func _on_new_unit(unit):
 	unit.tree_exited.connect(_on_unit_tree_exited)
 
 
@@ -54,7 +55,7 @@ func _on_unit_tree_exited():
 	for unit in get_tree().get_nodes_in_group("units"):
 		players.add(unit.player)
 	var human_players = get_tree().get_nodes_in_group("players").filter(
-		func(player): return player is Human
+		func(player): return player is Human and player.is_local()
 	)
 	if not human_players.is_empty() and not players.has(human_players[0]):
 		_handle_defeat()
