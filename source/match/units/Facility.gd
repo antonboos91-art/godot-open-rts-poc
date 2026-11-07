@@ -29,7 +29,7 @@ func _ready():
 func _process(delta):
 	if ability != "superweapon" or Network.is_client() or not is_constructed():
 		return
-	if player.is_low_power():
+	if player.is_low_power() or is_hacked():
 		return
 	var strike = Factions.entry(Factions.variant_of(self))["strike"]
 	_charge_seconds = min(strike["charge"], _charge_seconds + delta)
@@ -45,7 +45,7 @@ func is_charged():
 func fire_superweapon(target):
 	if ability != "superweapon" or not is_constructed() or not is_charged():
 		return
-	if player.is_low_power() or Network.is_client():
+	if player.is_low_power() or is_hacked() or Network.is_client():
 		return
 	var strike = Factions.entry(Factions.variant_of(self))["strike"]
 	_charge_seconds = 0.0
@@ -56,7 +56,10 @@ func fire_superweapon(target):
 			not player.is_ally_of(unit.player)
 			and unit.global_position_yless.distance_to(target_yless) <= strike["radius"]
 		):
-			unit.hp = unit.hp - strike["damage"]
+			if strike["damage"] > 0:
+				unit.hp = unit.hp - strike["damage"]
+			if strike.get("hack", 0.0) > 0.0 and unit.has_method("is_constructed"):
+				unit.hack(strike["hack"])
 	var match_node = find_parent("Match")
 	if Network.is_online():
 		match_node.show_strike.rpc(target, strike["radius"])
@@ -66,7 +69,7 @@ func fire_superweapon(target):
 
 ## Werkstatt: repariert eigene und verbündete Einheiten in der Nähe.
 func _repair_nearby_units():
-	if not is_constructed() or player.is_low_power():
+	if not is_constructed() or player.is_low_power() or is_hacked():
 		return
 	var amount = Constants.Match.Units.REPAIR_HP_PER_S * REPAIR_INTERVAL_S
 	for unit in get_tree().get_nodes_in_group("units"):

@@ -6,6 +6,9 @@ const Player = preload("res://source/match/players/Player.gd")
 const Human = preload("res://source/match/players/human/Human.gd")
 const Factions = preload("res://source/match/factions/Factions.gd")
 
+const HACK_SECONDS = 20.0
+const SABOTAGE_FRACTION = 0.6
+
 const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
 const Drone = preload("res://source/match/units/Drone.tscn")
 const Worker = preload("res://source/match/units/Worker.tscn")
@@ -169,6 +172,21 @@ func _deploy(_player, unit):
 
 ## Ein Ingenieur übernimmt ein Gebäude: Es wird für den neuen Besitzer neu erzeugt
 ## (die Spawner hängen am Besitzer), der Ingenieur geht dabei auf.
+func infiltrate_structure(structure, unit):
+	if Network.is_client():
+		return
+	match Factions.ability(Factions.variant_of(unit)):
+		"capture":
+			capture_structure(structure, unit)
+		"hack":
+			structure.hack(HACK_SECONDS)
+			_notify(structure.global_position, "GEHACKT")
+		"sabotage":
+			_notify(structure.global_position, "SABOTIERT")
+			unit._handle_unit_death()
+			structure.hp = max(0, structure.hp - int(ceil(structure.hp_max * SABOTAGE_FRACTION)))
+
+
 func capture_structure(structure, capturer):
 	if Network.is_client():
 		return

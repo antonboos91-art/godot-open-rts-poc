@@ -213,3 +213,12 @@ func _setup_default_properties_from_constants():
 func _on_action_node_tree_exited(action_node):
 	assert(action_node == action, "unexpected action released")
 	action = null
+
+
+## Gehackt: Gebäude produziert nicht, feuert nicht und lädt nicht (nur auf dem Host relevant).
+func is_hacked():
+	return Time.get_ticks_msec() < get_meta("hacked_until", 0)
+
+
+func hack(seconds):
+	set_meta("hacked_until", Time.get_ticks_msec() + int(seconds * 1000.0))

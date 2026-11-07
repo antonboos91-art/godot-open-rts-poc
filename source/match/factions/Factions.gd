@@ -12,6 +12,7 @@ const CORE = "core"
 const SHIBAS = "shibas"
 const KATZEN = "katzen"
 const BAEREN = "baeren"
+const CLOAK_DETECTION_M = 3.5
 const PLAYABLE = [SHIBAS, KATZEN, BAEREN]
 
 const UNITS_DIR = "res://source/match/units/"
@@ -104,7 +105,20 @@ const STRUCTURES = {
 			{"stats": {"attack_range": 10.0, "sight_range": 10.0}}
 		],
 		["turret_air", "Spiegel-Flak", "turret_air", 3, 2, -5, ["radar"], 7, {}],
-		["superweapon", "Systemabsturz", "facility", 10, 10, -20, ["lab"], 12, {"later": true}],
+		[
+			"superweapon",
+			"Systemabsturz",
+			"facility",
+			10,
+			10,
+			-20,
+			["lab"],
+			12,
+			{
+				"ability": "superweapon",
+				"strike": {"radius": 9.0, "damage": 0, "hack": 30.0, "charge": 90.0}
+			}
+		],
 	],
 	BAEREN:
 	[
@@ -330,8 +344,30 @@ const UNITS = {
 			},
 			{}
 		],
-		["hackerin", "Hackerin", "infantry", 3, 2, 5.0, "barracks", [], {}, {"later": true}],
-		["saboteur", "Saboteur", "infantry", 2, 2, 5.0, "barracks", [], {}, {"later": true}],
+		[
+			"hackerin",
+			"Hackerin",
+			"infantry",
+			3,
+			2,
+			5.0,
+			"barracks",
+			[],
+			{"attack_domains": "none"},
+			{"ability": "hack"}
+		],
+		[
+			"saboteur",
+			"Saboteur",
+			"infantry",
+			2,
+			2,
+			5.0,
+			"barracks",
+			[],
+			{"attack_domains": "none"},
+			{"ability": "sabotage", "cloak": true}
+		],
 		["sammler", "Kristall-Sammler", "worker", 3, 1, 3.0, "hq", [], {"hp": 5}, {"ai": true}],
 		[
 			"phantom",
@@ -350,7 +386,7 @@ const UNITS = {
 				"sight_range": 11.0,
 				"speed": 3.6
 			},
-			{}
+			{"cloak": true}
 		],
 		[
 			"prisma",
@@ -416,7 +452,7 @@ const UNITS = {
 				"attack_domains": "air",
 				"sight_range": 12.0
 			},
-			{}
+			{"cloak": true}
 		],
 		[
 			"kreischer",
@@ -718,6 +754,29 @@ static func ability(variant):
 	return entry(variant).get("ability", "")
 
 
+## Tarnung: Eine getarnte Einheit ist für Gegner nur sichtbar (und angreifbar),
+## wenn eine gegnerische Einheit näher als CLOAK_DETECTION_M steht.
+static func is_hidden_from(target, viewer_player):
+	if (
+		not "variant" in target
+		or target.variant == ""
+		or not entry(target.variant).get("cloak", false)
+	):
+		return false
+	if viewer_player.is_ally_of(target.player):
+		return false
+	for unit in target.get_tree().get_nodes_in_group("units"):
+		if (
+			not unit.player.is_ally_of(target.player)
+			and (
+				unit.global_position_yless.distance_to(target.global_position_yless)
+				<= CLOAK_DETECTION_M
+			)
+		):
+			return false
+	return true
+
+
 ## Variante der Zentrale, zu der sich ein Bau-Mobil dieses Volks entfaltet.
 static func deploy_target(variant):
 	return entry(variant).get("faction", CORE) + "/hq"
@@ -781,6 +840,7 @@ static func _build():
 					"stats": row[8],
 					"ai": extras.get("ai", false),
 					"ability": extras.get("ability", ""),
+					"cloak": extras.get("cloak", false),
 					"later": extras.get("later", false),
 				}
 			)
@@ -843,6 +903,7 @@ static func _add(faction, key, data):
 		"at": "",
 		"stats": {},
 		"ability": "",
+		"cloak": false,
 		"strike": {},
 		"ai": false,
 		"later": false,

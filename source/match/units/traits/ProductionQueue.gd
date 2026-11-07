@@ -28,6 +28,8 @@ var _queue = []
 
 func _process(delta):
 	delta *= _unit.player.production_speed_factor()
+	if _unit.is_hacked():
+		return
 	while _queue.size() > 0 and delta > 0.0:
 		var current_queue_element = _queue.front()
 		current_queue_element.time_left = max(0.0, current_queue_element.time_left - delta)

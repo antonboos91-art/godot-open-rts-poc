@@ -456,6 +456,61 @@ def shibas():
         sheet("shibas_" + key, parts, size, baseline)
 
 
+VIOLET = (92, 48, 140)
+NEON = (200, 80, 255)
+CAT_EARS = [box(-2, 0, 2, 2, 11, 4, TEAM), box(2, 0, 2, 2, 11, 4, TEAM)]
+
+KATZEN_UNITS = {
+    "hackerin": INFANTRY
+    + CAT_EARS
+    + [
+        box(0, 4, 6, 2, 5, 5, STEEL_DARK),  # Laptop
+        box(0, 5, 5, 1, 6, 3, GLASS),
+    ],
+    "saboteur": INFANTRY
+    + CAT_EARS
+    + [
+        box(0, -2, 6, 3, 4, 5, VIOLET),  # Sprengrucksack
+        box(0, -2, 2, 2, 9, 1, HAZARD),
+    ],
+    "phantom": [
+        box(0, 0, 14, 22, 2, 3, VIOLET),
+        box(0, 2, 8, 12, 5, 3, STEEL_DARK),
+        box(0, 4, 4, 4, 8, 2, NEON),
+        box(0, -6, 10, 3, 5, 2, TEAM),
+    ],
+    "nachtfalter": [
+        box(0, 0, 5, 14, 3, 4, STEEL_DARK),
+        box(-9, 0, 14, 5, 5, 1, VIOLET),
+        box(9, 0, 14, 5, 5, 1, VIOLET),
+        box(0, 5, 3, 3, 7, 2, NEON),
+        box(0, -6, 6, 2, 6, 3, TEAM),
+    ],
+    "superweapon": [
+        box(0, 0, 40, 36, 0, 3, CONCRETE),
+        box(0, 0, 24, 24, 3, 8, VIOLET),
+        cyl(0, 0, 10, 11, 14, STEEL_DARK, segments=14),  # Server-Turm
+        cyl(0, 0, 7, 25, 3, NEON, segments=14),
+        box(-14, 12, 4, 4, 3, 6, HAZARD),
+        box(14, 12, 4, 4, 3, 6, HAZARD),
+        box(0, 0, 10, 10, 28, 3, TEAM),
+    ],
+}
+KATZEN_SHEETS = {
+    "hackerin": (32, 24),
+    "saboteur": (32, 24),
+    "phantom": (32, 22),
+    "nachtfalter": (32, 20),
+    "superweapon": (64, 44),
+}
+
+
+def katzen():
+    for key, parts in KATZEN_UNITS.items():
+        size, baseline = KATZEN_SHEETS[key]
+        sheet("katzen_" + key, parts, size, baseline)
+
+
 if __name__ == "__main__":
     sheet("Infantry", INFANTRY, 32, 24)
     sheet("Barracks", BARRACKS, 64, 44)
@@ -472,3 +527,4 @@ if __name__ == "__main__":
     sheet("AntiGroundTurret", AG_TURRET, 32, 22)
     sheet("AntiAirTurret", AA_TURRET, 32, 22)
     shibas()
+    katzen()
