@@ -2,6 +2,7 @@ extends Node
 
 signal resources_required(resources, metadata)
 
+const Factions = preload("res://source/match/factions/Factions.gd")
 const CommandCenter = preload("res://source/match/units/CommandCenter.gd")
 const CommandCenterScene = preload("res://source/match/units/CommandCenter.tscn")
 const Worker = preload("res://source/match/units/Worker.gd")
@@ -33,7 +34,7 @@ func setup(player):
 func provision(resources, metadata):
 	if metadata == "worker":
 		assert(
-			resources == Constants.Match.Units.PRODUCTION_COSTS[WorkerScene.resource_path],
+			resources == Factions.cost_for(_player, WorkerScene.resource_path),
 			"unexpected amount of resources"
 		)
 		_number_of_pending_worker_resource_requests -= 1
@@ -43,7 +44,7 @@ func provision(resources, metadata):
 			_number_of_pending_workers += 1
 	elif metadata == "cc":
 		assert(
-			resources == Constants.Match.Units.CONSTRUCTION_COSTS[CommandCenterScene.resource_path],
+			resources == Factions.cost_for(_player, CommandCenterScene.resource_path),
 			"unexpected amount of resources"
 		)
 		_number_of_pending_cc_resource_requests -= 1
@@ -99,9 +100,7 @@ func _enforce_number_of_ccs():
 		- (_ccs.size() + _number_of_pending_cc_resource_requests + _number_of_pending_workers)
 	)
 	for _i in range(number_of_extra_ccs_required):
-		resources_required.emit(
-			Constants.Match.Units.CONSTRUCTION_COSTS[CommandCenterScene.resource_path], "cc"
-		)
+		resources_required.emit(Factions.cost_for(_player, CommandCenterScene.resource_path), "cc")
 		_number_of_pending_cc_resource_requests += 1
 
 
@@ -116,16 +115,12 @@ func _enforce_number_of_workers():
 		- (_workers.size() + _number_of_pending_worker_resource_requests)
 	)
 	for _i in range(number_of_extra_workers_required):
-		resources_required.emit(
-			Constants.Match.Units.PRODUCTION_COSTS[WorkerScene.resource_path], "worker"
-		)
+		resources_required.emit(Factions.cost_for(_player, WorkerScene.resource_path), "worker")
 		_number_of_pending_worker_resource_requests += 1
 
 
 func _construct_cc():
-	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
-		CommandCenterScene.resource_path
-	]
+	var construction_cost = Factions.cost_for(_player, CommandCenterScene.resource_path)
 	assert(
 		_player.has_resources(construction_cost),
 		"player should have enough resources at this point"

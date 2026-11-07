@@ -4,11 +4,13 @@ signal element_enqueued(element)
 signal element_removed(element)
 
 const Moving = preload("res://source/match/units/actions/Moving.gd")
+const Factions = preload("res://source/match/factions/Factions.gd")
 
 
 class ProductionQueueElement:
 	extends Resource
 	var unit_prototype = null
+	var variant = ""
 	var time_total = null
 	var time_left = null:
 		set(value):
@@ -25,6 +27,7 @@ var _queue = []
 
 
 func _process(delta):
+	delta *= _unit.player.production_speed_factor()
 	while _queue.size() > 0 and delta > 0.0:
 		var current_queue_element = _queue.front()
 		current_queue_element.time_left = max(0.0, current_queue_element.time_left - delta)
@@ -42,23 +45,33 @@ func get_elements():
 	return _queue
 
 
-func produce(unit_prototype, ignore_limit = false):
+## Produziert eine Volks-Variante (z. B. "shibas/tesla"). Mit einer Szene (KI, Tests)
+## wird die Standard-Variante des Volks für diesen Archetyp genommen.
+func produce(variant_or_scene, ignore_limit = false):
+	var variant = variant_or_scene
+	if variant_or_scene is PackedScene:
+		variant = Factions.variant_for_player(_unit.player, variant_or_scene.resource_path)
+	elif not Factions.is_available(_unit.player, variant):
+		return
+	if not variant in Factions.producible_at(_unit):
+		return
 	if Network.is_client():
-		find_parent("Match").send_command("produce", [_unit], [unit_prototype.resource_path])
+		find_parent("Match").send_command("produce", [_unit], [variant])
 		return
 	if not ignore_limit and _queue.size() >= Constants.Match.Units.PRODUCTION_QUEUE_LIMIT:
 		return
-	var production_cost = Constants.Match.Units.PRODUCTION_COSTS[unit_prototype.resource_path]
+	var production_cost = Factions.cost(variant)
 	if not _unit.player.has_resources(production_cost):
 		MatchSignals.not_enough_resources_for_production.emit(_unit.player)
 		return
 	_unit.player.subtract_resources(production_cost)
 	var queue_element = ProductionQueueElement.new()
-	queue_element.unit_prototype = unit_prototype
-	queue_element.time_total = Constants.Match.Units.PRODUCTION_TIMES[unit_prototype.resource_path]
-	queue_element.time_left = Constants.Match.Units.PRODUCTION_TIMES[unit_prototype.resource_path]
+	queue_element.unit_prototype = load(Factions.entry(variant)["archetype"])
+	queue_element.variant = variant
+	queue_element.time_total = Factions.production_time(variant)
+	queue_element.time_left = queue_element.time_total
 	_enqueue_element(queue_element)
-	MatchSignals.unit_production_started.emit(unit_prototype, _unit)
+	MatchSignals.unit_production_started.emit(queue_element.unit_prototype, _unit)
 
 
 func cancel_all():
@@ -69,10 +82,7 @@ func cancel_all():
 func cancel(element):
 	if not element in _queue:
 		return
-	var production_cost = Constants.Match.Units.PRODUCTION_COSTS[
-		element.unit_prototype.resource_path
-	]
-	_unit.player.add_resources(production_cost)
+	_unit.player.add_resources(Factions.cost(element.variant))
 	_remove_element(element)
 
 
@@ -88,6 +98,7 @@ func _remove_element(element):
 
 func _finalize_production(former_queue_element):
 	var produced_unit = former_queue_element.unit_prototype.instantiate()
+	produced_unit.variant = former_queue_element.variant
 	var placement_position = (
 		Utils
 		. Match

@@ -2,12 +2,15 @@ extends PanelContainer
 
 const Unit = preload("res://source/match/units/Unit.gd")
 const Moving = preload("res://source/match/units/actions/Moving.gd")
+const Factions = preload("res://source/match/factions/Factions.gd")
 
 const GROUND_LEVEL_PLANE = Plane(Vector3.UP, 0)
 const MINIMAP_PIXELS_PER_WORLD_METER = 2
 
 var _unit_to_corresponding_node_mapping = {}
 var _camera_movement_active = false
+var _no_radar_label = Label.new()
+var _radar_check_countdown = 0
 
 @onready var _match = find_parent("Match")
 @onready var _camera_indicator = find_child("CameraIndicator")
@@ -24,11 +27,40 @@ func _ready():
 		_match.find_child("Map").size * MINIMAP_PIXELS_PER_WORLD_METER
 	)
 	_texture_rect.gui_input.connect(_on_gui_input)
+	_no_radar_label.text = "KEIN RADAR"
+	_no_radar_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_no_radar_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_no_radar_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_no_radar_label.hide()
+	add_child(_no_radar_label)
 
 
 func _physics_process(_delta):
+	_radar_check_countdown -= 1
+	if _radar_check_countdown <= 0:
+		_radar_check_countdown = 30
+		var radar_online = _has_radar()
+		_texture_rect.visible = radar_online
+		_no_radar_label.visible = not radar_online
 	_sync_real_units_with_minimap_representations()
 	_update_camera_indicator()
+
+
+## Völker brauchen ein fertiges Radar-Gebäude mit Strom für die Minikarte.
+func _has_radar():
+	var player = _match.visible_player
+	if player == null or Factions.faction_of(player) == Factions.CORE:
+		return true
+	if player.is_low_power():
+		return false
+	for unit in player.get_children():
+		if (
+			unit.has_method("is_constructed")
+			and unit.is_constructed()
+			and Factions.entry(Factions.variant_of(unit)).get("ability", "") == "radar"
+		):
+			return true
+	return false
 
 
 func _remove_dummy_nodes():

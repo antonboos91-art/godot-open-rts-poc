@@ -7,6 +7,7 @@ signal action_changed(new_action)
 signal action_updated
 
 const PixelSprite = preload("res://source/match/units/traits/PixelSprite.gd")
+const Factions = preload("res://source/match/factions/Factions.gd")
 
 const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
 const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
@@ -39,6 +40,11 @@ var global_position_yless:
 		return global_position * Vector3(1, 0, 1)
 var type:
 	get = _get_type
+## Volks-Variante, z. B. "shibas/tesla" (leer = Grundvolk). Siehe Factions.gd
+var variant = ""
+var display_name:
+	get:
+		return Factions.display_name(Factions.variant_of(self))
 
 var _action_locked = false
 
@@ -46,7 +52,7 @@ var _action_locked = false
 
 
 func _init():
-	var replicated_properties = [":position", ":rotation", ":hp", ":hp_max"]
+	var replicated_properties = [":variant", ":position", ":rotation", ":hp", ":hp_max"]
 	if "_construction_progress" in self:
 		replicated_properties.append(":_construction_progress")
 	var synchronizer = MultiplayerSynchronizer.new()
@@ -180,9 +186,21 @@ func _handle_unit_death():
 
 
 func _setup_default_properties_from_constants():
-	var default_properties = Constants.Match.Units.DEFAULT_PROPERTIES[
-		get_script().resource_path.replace(".gd", ".tscn")
-	]
+	var default_properties = (
+		Constants
+		. Match
+		. Units
+		. DEFAULT_PROPERTIES[get_script().resource_path.replace(".gd", ".tscn")]
+		. duplicate()
+	)
+	# Werte der Volks-Variante überschreiben die des Archetyps
+	var variant_stats = Factions.stats(variant)
+	if "hp" in variant_stats:
+		variant_stats["hp_max"] = variant_stats["hp"]
+	if "speed" in variant_stats and find_child("Movement") != null:
+		find_child("Movement").speed = variant_stats["speed"]
+	variant_stats.erase("speed")
+	default_properties.merge(variant_stats, true)
 	for property in default_properties:
 		# Auf Clients kamen hp/hp_max evtl. schon vom Host
 		if Network.is_client() and property in ["hp", "hp_max"] and get(property) != null:

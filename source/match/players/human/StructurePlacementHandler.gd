@@ -8,6 +8,8 @@ enum BlueprintPositionValidity {
 	OUT_OF_MAP,
 }
 
+const Factions = preload("res://source/match/factions/Factions.gd")
+
 const ROTATION_BY_KEY_STEP = 45.0
 const ROTATION_DEAD_ZONE_DISTANCE = 0.1
 
@@ -19,6 +21,7 @@ var _active_blueprint_node = null
 var _pending_structure_radius = null
 var _pending_structure_navmap_rid = null
 var _pending_structure_prototype = null
+var _pending_variant = ""
 var _blueprint_rotating = false
 
 @onready var _player = get_parent()
@@ -110,10 +113,7 @@ func _calculate_blueprint_position_validity():
 
 
 func _player_has_enough_resources():
-	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
-		_pending_structure_prototype.resource_path
-	]
-	return _player.has_resources(construction_cost)
+	return _player.has_resources(Factions.cost(_pending_variant))
 
 
 func _active_bluprint_out_of_map():
@@ -139,9 +139,11 @@ func _update_feedback_label(blueprint_position_validity):
 			_feedback_label.text = tr("BLUEPRINT_OUT_OF_MAP")
 
 
-func _start_structure_placement(structure_prototype):
-	if _structure_placement_started():
+func _start_structure_placement(variant):
+	if _structure_placement_started() or Factions.entry(variant).is_empty():
 		return
+	_pending_variant = variant
+	var structure_prototype = load(Factions.entry(variant)["archetype"])
 	_pending_structure_prototype = structure_prototype
 	_active_blueprint_node = (
 		load(Constants.Match.Units.STRUCTURE_BLUEPRINTS[structure_prototype.resource_path])
@@ -202,7 +204,7 @@ func _finish_structure_placement():
 		find_parent("Match").send_command(
 			"place_structure",
 			selected_workers,
-			[_pending_structure_prototype.resource_path, _active_blueprint_node.global_transform]
+			[_pending_variant, _active_blueprint_node.global_transform]
 		)
 	_cancel_structure_placement()
 
@@ -241,5 +243,5 @@ func _finish_blueprint_rotation():
 	_blueprint_rotating = false
 
 
-func _on_structure_placement_request(structure_prototype):
-	_start_structure_placement(structure_prototype)
+func _on_structure_placement_request(variant):
+	_start_structure_placement(variant)

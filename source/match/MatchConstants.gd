@@ -60,6 +60,11 @@ class Resources:
 
 class Units:
 	const PRODUCTION_COSTS = {
+		"res://source/match/units/Infantry.tscn":
+		{
+			"resource_a": 1,
+			"resource_b": 0,
+		},
 		"res://source/match/units/Worker.tscn":
 		{
 			"resource_a": 2,
@@ -82,6 +87,7 @@ class Units:
 		},
 	}
 	const PRODUCTION_TIMES = {
+		"res://source/match/units/Infantry.tscn": 3.0,
 		"res://source/match/units/Worker.tscn": 3.0,
 		"res://source/match/units/Helicopter.tscn": 6.0,
 		"res://source/match/units/Drone.tscn": 3.0,
@@ -89,6 +95,14 @@ class Units:
 	}
 	const PRODUCTION_QUEUE_LIMIT = 5
 	const STRUCTURE_BLUEPRINTS = {
+		"res://source/match/units/Barracks.tscn":
+		"res://source/match/units/structure-geometries/VehicleFactory.tscn",
+		"res://source/match/units/PowerPlant.tscn":
+		"res://source/match/units/structure-geometries/VehicleFactory.tscn",
+		"res://source/match/units/Refinery.tscn":
+		"res://source/match/units/structure-geometries/VehicleFactory.tscn",
+		"res://source/match/units/Facility.tscn":
+		"res://source/match/units/structure-geometries/VehicleFactory.tscn",
 		"res://source/match/units/CommandCenter.tscn":
 		"res://source/match/units/structure-geometries/CommandCenter.tscn",
 		"res://source/match/units/VehicleFactory.tscn":
@@ -101,6 +115,26 @@ class Units:
 		"res://source/match/units/structure-geometries/AntiAirTurret.tscn",
 	}
 	const CONSTRUCTION_COSTS = {
+		"res://source/match/units/Barracks.tscn":
+		{
+			"resource_a": 4,
+			"resource_b": 0,
+		},
+		"res://source/match/units/PowerPlant.tscn":
+		{
+			"resource_a": 4,
+			"resource_b": 0,
+		},
+		"res://source/match/units/Refinery.tscn":
+		{
+			"resource_a": 4,
+			"resource_b": 0,
+		},
+		"res://source/match/units/Facility.tscn":
+		{
+			"resource_a": 4,
+			"resource_b": 0,
+		},
 		"res://source/match/units/CommandCenter.tscn":
 		{
 			"resource_a": 8,
@@ -128,6 +162,40 @@ class Units:
 		},
 	}
 	const DEFAULT_PROPERTIES = {
+		"res://source/match/units/Barracks.tscn":
+		{
+			"sight_range": 6.0,
+			"hp": 10,
+			"hp_max": 10,
+		},
+		"res://source/match/units/PowerPlant.tscn":
+		{
+			"sight_range": 6.0,
+			"hp": 10,
+			"hp_max": 10,
+		},
+		"res://source/match/units/Refinery.tscn":
+		{
+			"sight_range": 6.0,
+			"hp": 10,
+			"hp_max": 10,
+		},
+		"res://source/match/units/Facility.tscn":
+		{
+			"sight_range": 6.0,
+			"hp": 10,
+			"hp_max": 10,
+		},
+		"res://source/match/units/Infantry.tscn":
+		{
+			"sight_range": 6.0,
+			"hp": 4,
+			"hp_max": 4,
+			"attack_damage": 1,
+			"attack_interval": 1.0,
+			"attack_range": 4.0,
+			"attack_domains": [Navigation.Domain.TERRAIN],
+		},
 		"res://source/match/units/Drone.tscn":
 		{
 			"sight_range": 10.0,
@@ -201,6 +269,8 @@ class Units:
 		},
 	}
 	const PROJECTILES = {
+		"res://source/match/units/Infantry.tscn":
+		"res://source/match/units/projectiles/CannonShell.tscn",
 		"res://source/match/units/Helicopter.tscn":
 		"res://source/match/units/projectiles/Rocket.tscn",
 		"res://source/match/units/Tank.tscn":
@@ -215,6 +285,9 @@ class Units:
 	const MOVING_UNIT_RADIUS_MAX_M = 1.0
 	const EMPTY_SPACE_RADIUS_SURROUNDING_STRUCTURE_M = MOVING_UNIT_RADIUS_MAX_M * 2.5
 	const STRUCTURE_CONSTRUCTING_SPEED = 0.3  # progress [0.0..1.0] per second
+	const LOW_POWER_PRODUCTION_FACTOR = 0.5  # Produktion bei Strommangel langsamer
+	const REPAIR_RADIUS_M = 5.0
+	const REPAIR_HP_PER_S = 0.5
 
 
 class VoiceNarrator:

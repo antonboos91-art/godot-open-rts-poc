@@ -1,8 +1,12 @@
 ## Lobby: Hosten oder per IP beitreten, Karte wählen, Partie starten.
 extends Control
 
+const PlayMenu = preload("res://source/main-menu/Play.gd")
+const Factions = preload("res://source/match/factions/Factions.gd")
+
 var _map_paths = []
 
+var _faction_option = PlayMenu.FactionOption.new()
 var _name_edit = LineEdit.new()
 var _address_edit = LineEdit.new()
 var _host_button = Button.new()
@@ -47,6 +51,18 @@ func _build_ui():
 	_name_edit.placeholder_text = "Name"
 	_name_edit.text = "Player"
 	box.add_child(_name_edit)
+
+	var faction_row = HBoxContainer.new()
+	var faction_label = Label.new()
+	faction_label.text = "Dein Volk:"
+	faction_row.add_child(faction_label)
+	_faction_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_faction_option.item_selected.connect(
+		func(_index): Network.set_local_faction(_faction_option.get_choice())
+	)
+	Network.set_local_faction(_faction_option.get_choice())
+	faction_row.add_child(_faction_option)
+	box.add_child(faction_row)
 
 	_host_button.text = "HOST"
 	_host_button.pressed.connect(_on_host_pressed)
@@ -117,7 +133,13 @@ func _refresh():
 		_status_label.text = "Connected. Waiting for host to start."
 	var names = []
 	for peer_id in Network.peers:
-		names.append(("* " if peer_id == 1 else "- ") + str(Network.peers[peer_id]))
+		var choice = Network.factions.get(peer_id, Network.RANDOM_FACTION)
+		var faction_name = (
+			"Zufall" if choice == Network.RANDOM_FACTION else Factions.info(choice)["name"]
+		)
+		names.append(
+			"%s%s (%s)" % ["* " if peer_id == 1 else "- ", Network.peers[peer_id], faction_name]
+		)
 	_players_label.text = "\n".join(names)
 
 

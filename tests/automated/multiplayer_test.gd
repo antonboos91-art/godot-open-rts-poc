@@ -24,6 +24,7 @@ func _initialize():
 func _run_host():
 	await process_frame
 	var network = root.get_node("/root/Network")
+	network.set_local_faction("shibas")
 	_check(network.host("Host") == OK, "host started")
 	if not await _wait_until(func(): return network.peers.size() == 2, 20.0):
 		_finish(false, "no client joined")
@@ -64,6 +65,7 @@ func _run_host():
 func _run_client():
 	await process_frame
 	var network = root.get_node("/root/Network")
+	network.set_local_faction("baeren")
 	_check(network.join("127.0.0.1", "Client") == OK, "client connecting")
 	var a_match = await _wait_for_match()
 	if a_match == null:
@@ -101,6 +103,15 @@ func _run_client():
 
 	var me = get_nodes_in_group("players").filter(func(p): return p.is_local())[0]
 	_check(me.peer_id == root.multiplayer.get_unique_id(), "local player has own peer id")
+	_check(me.faction == "baeren", "client plays the faction chosen in the lobby")
+	_check(
+		get_nodes_in_group("controlled_units").all(
+			func(u): return u.variant.begins_with("baeren/")
+		),
+		"faction variants of own units replicated to client"
+	)
+	var hq = get_nodes_in_group("controlled_units").filter(func(u): return u.variant == "baeren/hq")
+	_check(not hq.is_empty() and hq[0].hp_max == 30, "variant stats applied on client")
 
 	# Bewegungsbefehl
 	var worker = get_nodes_in_group("controlled_units").filter(func(u): return u.get_script().resource_path.ends_with("Worker.gd"))[0]
@@ -129,14 +140,16 @@ func _run_client():
 	# Gebäude platzieren: Arbeiter sollen es bauen, Fortschritt kommt zum Client
 	var structures_before = _own_structures().size()
 	var build_spot = Transform3D(Basis(), command_center.global_position + Vector3(-7, 0, 6))
-	a_match.send_command(
-		"place_structure", [worker], ["res://source/match/units/VehicleFactory.tscn", build_spot]
-	)
+	a_match.send_command("place_structure", [worker], ["baeren/power", build_spot])
 	var placed = await _wait_until(func(): return _own_structures().size() > structures_before, 5.0)
 	_check(placed, "structure placed by client appears")
 	if placed:
 		var factory = _own_structures().filter(func(u): return u.is_under_construction())
 		_check(not factory.is_empty(), "new structure is under construction on client")
+		_check(
+			not factory.is_empty() and factory[0].variant == "baeren/power",
+			"placed structure is the Diesel-Brummer"
+		)
 		if not factory.is_empty():
 			var progressed = await _wait_until(
 				func(): return not is_instance_valid(factory[0]) or factory[0].hp > 1, 15.0

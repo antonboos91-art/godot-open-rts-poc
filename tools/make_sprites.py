@@ -13,6 +13,7 @@ Aufruf: python3 tools/make_sprites.py  -> assets/sprites/units/<Typ>.png
 import math
 import os
 import random
+import zlib
 
 from PIL import Image, ImageDraw
 
@@ -113,7 +114,7 @@ def sheet(name, parts, size, baseline, directions=DIRECTIONS):
     for d in range(directions):
         angle = 2 * math.pi * d / directions
         frame = render(parts, size, angle, baseline)
-        frames.append(outline(grit(frame, hash((name, d)) & 0xFFFF)))
+        frames.append(outline(grit(frame, zlib.crc32(f"{name}{d}".encode()))))
     out = Image.new("RGBA", (size * directions, size), (0, 0, 0, 0))
     for d, frame in enumerate(frames):
         out.paste(frame, (d * size, 0))
@@ -207,7 +208,61 @@ AA_TURRET = [
     box(3, 4, 2, 6, 8, 8, STEEL_DARK),
 ]
 
+INFANTRY = [
+    box(-1.5, 0, 2, 2, 0, 4, BLACK),  # Beine
+    box(1.5, 0, 2, 2, 0, 4, BLACK),
+    box(0, 0, 6, 3, 4, 5, TEAM_DARK),  # Rumpf mit Weste
+    box(0, -1.5, 5, 2, 5, 3, STEEL_DARK),  # Rucksack
+    box(3, 3, 1, 6, 6, 1, STEEL),  # Waffe
+    cyl(0, 0, 2, 9, 2, CONCRETE, segments=8),  # Kopf
+    box(0, 0, 5, 2, 11, 0, TEAM),  # Helm
+]
+
+BARRACKS = [
+    box(0, 0, 38, 30, 0, 3, CONCRETE),
+    box(-6, -2, 24, 24, 3, 7, STEEL_DARK),
+    poly([(-18, -14), (6, -14), (6, 10), (-18, 10)], 10, 1, TEAM_DARK),  # Dach
+    box(10, 4, 12, 18, 3, 5, STEEL),  # Anbau
+    box(-6, 11, 8, 2, 3, 5, BLACK),  # Tür
+    box(12, -10, 2, 2, 8, 9, STEEL_DARK),  # Funkantenne
+    box(0, 14, 26, 2, 0, 1, HAZARD),
+]
+
+POWER_PLANT = [
+    box(0, 0, 34, 34, 0, 3, CONCRETE),
+    cyl(-7, -5, 8, 3, 12, STEEL, segments=14),  # Kühlturm
+    cyl(-7, -5, 5, 15, 0, BLACK, segments=12),
+    box(9, 5, 12, 14, 3, 6, STEEL_DARK),
+    box(9, 5, 10, 2, 9, 1, TEAM),  # Spulen
+    box(9, 9, 10, 2, 9, 1, TEAM),
+    box(12, -10, 3, 3, 3, 10, RUST),  # Mast
+]
+
+REFINERY = [
+    box(0, 0, 40, 36, 0, 3, CONCRETE),
+    box(-8, -4, 20, 22, 3, 9, RUST),  # Presse
+    box(-8, -4, 16, 4, 12, 2, TEAM),
+    cyl(10, -8, 6, 3, 10, STEEL, segments=12),  # Silo
+    box(10, 8, 14, 10, 0, 1, HAZARD),  # Abladeplatz
+    box(10, 8, 10, 6, 1, 0, BLACK),
+    box(-16, 10, 4, 4, 3, 13, STEEL_DARK),  # Schlot
+]
+
+FACILITY = [
+    box(0, 0, 34, 30, 0, 3, CONCRETE),
+    box(0, -2, 26, 22, 3, 8, STEEL),
+    box(0, -2, 20, 16, 11, 2, STEEL_DARK),
+    cyl(-6, -6, 4, 13, 2, TEAM, segments=10),  # Schüssel
+    box(8, 4, 2, 2, 11, 9, STEEL_DARK),  # Antenne
+    box(0, 12, 10, 2, 3, 4, GLASS),
+]
+
 if __name__ == "__main__":
+    sheet("Infantry", INFANTRY, 32, 24)
+    sheet("Barracks", BARRACKS, 64, 44)
+    sheet("PowerPlant", POWER_PLANT, 64, 44)
+    sheet("Refinery", REFINERY, 64, 44)
+    sheet("Facility", FACILITY, 64, 44)
     sheet("Worker", WORKER, 32, 22)
     sheet("Tank", TANK, 32, 22)
     sheet("Drone", DRONE, 32, 20)

@@ -17,10 +17,14 @@ const MAX_CLIENTS = 7
 const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
 const PlayerSettings = preload("res://source/data-model/PlayerSettings.gd")
 const LoadingScene = preload("res://source/main-menu/Loading.tscn")
+const Factions = preload("res://source/match/factions/Factions.gd")
+const RANDOM_FACTION = "random"
 
 var peers = {}  # peer_id -> Spielername (inkl. Host mit id 1)
+var factions = {}  # peer_id -> gewähltes Volk ("shibas", ..., "random", "core")
 
 var _local_name = "Player"
+var _local_faction = RANDOM_FACTION
 var _clients_ready_for_match = []
 
 
@@ -51,6 +55,7 @@ func host(player_name, port = DEFAULT_PORT):
 	multiplayer.multiplayer_peer = peer
 	_local_name = player_name
 	peers = {1: player_name}
+	factions = {1: _local_faction}
 	lobby_changed.emit()
 	return OK
 
@@ -63,6 +68,7 @@ func join(address, player_name, port = DEFAULT_PORT):
 	multiplayer.multiplayer_peer = peer
 	_local_name = player_name
 	peers = {}
+	factions = {}
 	return OK
 
 
@@ -72,6 +78,17 @@ func leave():
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	peers = {}
 	lobby_changed.emit()
+
+
+## Eigenes Volk für die nächste Partie wählen (auch schon vor dem Verbinden).
+func set_local_faction(faction):
+	_local_faction = faction
+	if not is_online():
+		return
+	if multiplayer.is_server():
+		_set_faction_of(1, faction)
+	else:
+		_request_faction.rpc_id(1, faction)
 
 
 func lan_addresses():
@@ -89,6 +106,7 @@ func start_match(map_path, fill_free_slots_with_ai = true, humans_vs_ai = false)
 	var peer_ids = peers.keys()
 	peer_ids.sort()
 	var players = []
+	var ai_faction_mode = factions.get(1, RANDOM_FACTION)
 	for slot in range(slots):
 		if slot < peer_ids.size():
 			(
@@ -99,17 +117,23 @@ func start_match(map_path, fill_free_slots_with_ai = true, humans_vs_ai = false)
 						"peer_id": peer_ids[slot],
 						"slot": slot,
 						"team": 1 if humans_vs_ai else 0,
+						"faction": _resolve_faction(factions.get(peer_ids[slot], RANDOM_FACTION)),
 					}
 				)
 			)
 		elif fill_free_slots_with_ai:
-			players.append(
-				{
-					"controller": Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI,
-					"peer_id": 0,
-					"slot": slot,
-					"team": 2 if humans_vs_ai else 0,
-				}
+			(
+				players
+				. append(
+					{
+						"controller": Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI,
+						"peer_id": 0,
+						"slot": slot,
+						"team": 2 if humans_vs_ai else 0,
+						"faction":
+						"" if ai_faction_mode == Factions.CORE else Factions.random_faction(),
+					}
+				)
 			)
 	_clients_ready_for_match = []
 	multiplayer.multiplayer_peer.refuse_new_connections = true
@@ -138,6 +162,7 @@ func _start_match(map_path, players):
 		player_settings.controller = players[player_id]["controller"]
 		player_settings.peer_id = players[player_id]["peer_id"]
 		player_settings.team = players[player_id].get("team", 0)
+		player_settings.faction = players[player_id].get("faction", "")
 		player_settings.color = Constants.Player.COLORS[players[player_id]["slot"]]
 		match_settings.players.append(player_settings)
 		if player_settings.peer_id == multiplayer.get_unique_id():
@@ -164,22 +189,45 @@ func _client_ready_for_match():
 
 
 @rpc("any_peer", "reliable")
-func _register_player(player_name):
+func _register_player(player_name, faction = RANDOM_FACTION):
 	if not multiplayer.is_server():
 		return
 	peers[multiplayer.get_remote_sender_id()] = player_name
-	_sync_lobby.rpc(peers)
+	_set_faction_of(multiplayer.get_remote_sender_id(), faction)
+
+
+@rpc("any_peer", "reliable")
+func _request_faction(faction):
+	if multiplayer.is_server():
+		_set_faction_of(multiplayer.get_remote_sender_id(), faction)
+
+
+func _set_faction_of(peer_id, faction):
+	if not faction in Factions.PLAYABLE + [RANDOM_FACTION, Factions.CORE]:
+		faction = RANDOM_FACTION
+	factions[peer_id] = faction
+	_sync_lobby.rpc(peers, factions)
 	lobby_changed.emit()
 
 
 @rpc("authority", "reliable")
-func _sync_lobby(new_peers):
+func _sync_lobby(new_peers, new_factions = {}):
 	peers = new_peers
+	factions = new_factions
 	lobby_changed.emit()
 
 
+## "random" wird erst beim Start ausgewürfelt, "core" heißt ohne Volk.
+func _resolve_faction(faction):
+	if faction == RANDOM_FACTION:
+		return Factions.random_faction()
+	if faction == Factions.CORE:
+		return ""
+	return faction
+
+
 func _on_connected_to_server():
-	_register_player.rpc_id(1, _local_name)
+	_register_player.rpc_id(1, _local_name, _local_faction)
 
 
 func _on_connection_failed():
@@ -191,7 +239,8 @@ func _on_peer_disconnected(peer_id):
 	if not multiplayer.is_server():
 		return
 	peers.erase(peer_id)
-	_sync_lobby.rpc(peers)
+	factions.erase(peer_id)
+	_sync_lobby.rpc(peers, factions)
 	lobby_changed.emit()
 	if are_all_clients_ready_for_match():
 		all_clients_ready_for_match.emit()

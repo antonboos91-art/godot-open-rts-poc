@@ -2,6 +2,7 @@ extends Node
 
 signal resources_required(resources, metadata)
 
+const Factions = preload("res://source/match/factions/Factions.gd")
 const Worker = preload("res://source/match/units/Worker.gd")
 const CommandCenter = preload("res://source/match/units/CommandCenter.gd")
 const VehicleFactory = preload("res://source/match/units/VehicleFactory.gd")
@@ -82,7 +83,7 @@ func _setup_refresh_timer():
 
 func _provision_structure(structure_scene, resources, metadata):
 	assert(
-		resources == Constants.Match.Units.CONSTRUCTION_COSTS[structure_scene.resource_path],
+		resources == Factions.cost_for(_player, structure_scene.resource_path),
 		"unexpected amount of resources"
 	)
 	var workers = get_tree().get_nodes_in_group("units").filter(
@@ -96,7 +97,7 @@ func _provision_structure(structure_scene, resources, metadata):
 
 func _provision_unit(unit_scene, structure_producing_unit, resources, metadata):
 	assert(
-		resources == Constants.Match.Units.PRODUCTION_COSTS[unit_scene.resource_path],
+		resources == Factions.cost_for(_player, unit_scene.resource_path),
 		"unexpected amount of resources"
 	)
 	if structure_producing_unit == null:
@@ -137,7 +138,7 @@ func _attach_current_battle_units():
 
 
 func _construct_structure(structure_scene):
-	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[structure_scene.resource_path]
+	var construction_cost = Factions.cost_for(_player, structure_scene.resource_path)
 	assert(
 		_player.has_resources(construction_cost),
 		"player should have enough resources at this point"
@@ -186,9 +187,7 @@ func _enforce_structure_existence(structure, structure_scene, type):
 		_number_of_pending_structure_resource_requests[type] = (
 			_number_of_pending_structure_resource_requests.get(type, 0) + 1
 		)
-		resources_required.emit(
-			Constants.Match.Units.CONSTRUCTION_COSTS[structure_scene.resource_path], type
-		)
+		resources_required.emit(Factions.cost_for(_player, structure_scene.resource_path), type)
 
 
 func _enforce_primary_units_production():
@@ -207,9 +206,7 @@ func _enforce_units_production(structure, unit_scene, type):
 		_number_of_pending_unit_resource_requests[type] = (
 			_number_of_pending_unit_resource_requests.get(type, 0) + 1
 		)
-		resources_required.emit(
-			Constants.Match.Units.PRODUCTION_COSTS[unit_scene.resource_path], type
-		)
+		resources_required.emit(Factions.cost_for(_player, unit_scene.resource_path), type)
 
 
 func _primary_structure():
