@@ -12,6 +12,10 @@ signal changed
 		emit_changed()
 @export var color = Color.WHITE
 
+## Spieler mit gleichem Team (> 0) sind verbündet: kein gegenseitiger Angriff,
+## gemeinsame Sicht, gemeinsamer Sieg. 0 = jeder gegen jeden.
+var team = 0
+
 ## Multiplayer-Peer, der diesen Spieler steuert (0 = KI bzw. lokal im Einzelspieler).
 var peer_id = 0
 
@@ -25,6 +29,12 @@ func add_synchronizer():
 	synchronizer.name = "ResourcesSynchronizer"
 	synchronizer.replication_config = Utils.Net.replication_config([":resource_a", ":resource_b"])
 	add_child(synchronizer)
+
+
+func is_ally_of(other_player):
+	return (
+		other_player == self or (team != 0 and other_player != null and team == other_player.team)
+	)
 
 
 ## true, wenn dieser Spieler auf diesem Rechner gesteuert wird.

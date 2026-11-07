@@ -156,7 +156,10 @@ func _set_visible_player(player):
 
 func _get_visible_players():
 	if settings.visibility == settings.Visibility.PER_PLAYER:
-		return [visible_player]
+		# Verbündete teilen ihre Sicht
+		return get_tree().get_nodes_in_group("players").filter(
+			func(player): return player.is_ally_of(visible_player)
+		)
 	return get_tree().get_nodes_in_group("players")
 
 
@@ -202,6 +205,7 @@ func _create_players_from_settings():
 				_strip_local_input_from_remote_human(player)
 		player.color = player_settings.color
 		player.peer_id = player_settings.peer_id
+		player.team = player_settings.team
 		# Gleiche Namen auf allen Rechnern, damit RPCs und Sync die Knoten finden
 		player.name = "Player%d" % player_id
 		if player_settings.spawn_index_offset > 0:
@@ -296,8 +300,11 @@ func _setup_and_spawn_unit(unit, a_transform, player, mark_structure_under_const
 
 func _setup_unit_groups(unit, player):
 	unit.add_to_group("units")
-	if player == _get_human_player():
+	var human_player = _get_human_player()
+	if player == human_player:
 		unit.add_to_group("controlled_units")
+	elif human_player != null and player.is_ally_of(human_player):
+		unit.add_to_group("allied_units")
 	else:
 		unit.add_to_group("adversary_units")
 	if player in visible_players:
