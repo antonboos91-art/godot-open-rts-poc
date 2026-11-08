@@ -70,6 +70,47 @@ var _last_position = Vector3.ZERO
 var _flip = false
 
 
+## Echtes 3D-Modell einer Volks-Variante (assets/models/factions/<volk>_<variante>.glb)
+const MODEL_DIR = "res://assets/models/factions/"
+
+
+static func model_path_for(variant):
+	if variant == "":
+		return ""
+	var path = MODEL_DIR + variant.replace("/", "_") + ".glb"
+	return path if ResourceLoader.exists(path) else ""
+
+
+## Setzt das 3D-Modell statt des Original-Meshes ein, mit Teamfarben-Ring bei Einheiten.
+static func _attach_model(unit, path):
+	var model = load(path).instantiate()
+	model.name = "FactionModel"
+	unit.add_child(model)
+	load("res://source/match/units/traits/TankVisual.gd").brighten(model)
+	var geometry = unit.find_child("Geometry", false, false)
+	if geometry != null:
+		geometry.visible = false
+	if not unit.type in ANIM_BUILDING_TYPES:
+		var ring = MeshInstance3D.new()
+		ring.name = "TeamRing"
+		var torus = TorusMesh.new()
+		var radius = ANIM_WORLD_SIZES.get(unit.type, 4.0) * 0.32
+		torus.inner_radius = radius * 0.86
+		torus.outer_radius = radius
+		torus.rings = 24
+		torus.ring_segments = 4
+		ring.mesh = torus
+		ring.scale = Vector3(1.0, 0.05, 1.0)
+		ring.position.y = 0.03
+		var material = StandardMaterial3D.new()
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		material.albedo_color = unit.color
+		ring.material_override = material
+		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		unit.add_child(ring)
+	return model
+
+
 static func anim_path_for(variant):
 	if variant == "":
 		return ""
@@ -139,6 +180,12 @@ static func icon_for(variant, team_color = Color(0.85, 0.85, 0.85)):
 
 
 static func try_attach(unit):
+	var tank = load("res://source/match/units/traits/TankVisual.gd").try_attach(unit)
+	if tank != null:
+		return tank
+	var model_path = model_path_for(unit.variant)
+	if model_path != "":
+		return _attach_model(unit, model_path)
 	var anim_path = anim_path_for(unit.variant)
 	if anim_path != "":
 		var anim_sprite = new()

@@ -56,9 +56,10 @@ func _initialize():
 		root3d.add_child(u)
 		u.position = Vector3(-22 + (i % 6) * 9, 0, -14 + (i / 6) * 9)
 		PixelSprite.try_attach(u)
-		var s = u.get_node("PixelSprite")
-		s._clip = 0
-		s._clip_time = 0.3 + (i % 3) * 0.25
+		var s = u.get_node_or_null("PixelSprite")
+		if s != null:
+			s._clip = 0
+			s._clip_time = 0.3 + (i % 3) * 0.25
 		i += 1
 
 
