@@ -61,15 +61,15 @@ func _run():
 	await _frames(20)
 	var cam = match_node.find_child("IsometricCamera3D", true, false)
 	if cam != null:
-		cam.set_size_safely(34.0)
-		cam.set_position_safely(origin + Vector3(17, 0, 5))
+		cam.set_size_safely(20.0)
+		cam.set_position_safely(Vector3(30, 0, 30))
 	await _frames(40)
-	_shot("wide")
+	await _shot("wide")
 	if cam != null:
-		cam.set_size_safely(9.0)
-		cam.set_position_safely(origin + Vector3(8, 0, 2))
+		cam.set_size_safely(20.0)
+		cam.set_position_safely(Vector3(6, 0, 8))
 	await _frames(20)
-	_shot("close")
+	await _shot("edge")
 	quit(0)
 
 

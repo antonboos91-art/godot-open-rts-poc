@@ -28,3 +28,20 @@ func _animate_decay():
 	var decay_animation = ResourceDecayAnimation.instantiate()
 	decay_animation.global_transform = global_transform
 	get_parent().add_child.call_deferred(decay_animation)
+
+
+## Ersetzt das Platzhalter-Modell durch ein Kristallfeld-Sprite.
+func _add_ore_sprite(sprite_name):
+	var geometry = find_child("Geometry", false, false)
+	if geometry != null:
+		geometry.visible = false
+	var sprite = Sprite3D.new()
+	sprite.texture = load("res://assets/sprites/nature/" + sprite_name + ".png")
+	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	sprite.shaded = false
+	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_OPAQUE_PREPASS
+	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	sprite.pixel_size = 4.4 / 256.0
+	sprite.offset = Vector2(0, 184.0 - 128.0)
+	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(sprite)
