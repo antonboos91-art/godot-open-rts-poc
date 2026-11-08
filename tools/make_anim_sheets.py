@@ -4,7 +4,7 @@ import glob, os
 from PIL import Image
 OUT="game/assets/sprites/units"; SIZE=160; FR=16
 UNITS={"shibas_trooper":("rifleman_salute","rifleman_scratch"),
-       "shibas_raketen":("rocket_salute","rocket_scratch"),
+       "shibas_zapper":("rocket_salute","rocket_scratch"),
        "shibas_ingenieur":("engineer_salute","engineer_scratch")}
 def frames(a):
     d=f"out/concepts/cut/{a}"; fs={}

@@ -10,7 +10,34 @@ const ANIM_SHADER = preload("res://source/shaders/3d/sprite_anim.gdshader")
 const ANIM_CLIPS = 2
 const ANIM_FRAMES = 16
 const ANIM_FPS = 14.0
-const ANIM_WORLD_SIZE = 2.4
+## Weltgroesse (Kantenlaenge des Quads) der Animations-/HD-Sprites je Einheitentyp
+const ANIM_WORLD_SIZES = {
+	"Infantry": 2.4,
+	"Worker": 3.2,
+	"Tank": 4.2,
+	"Helicopter": 4.6,
+	"Drone": 4.0,
+	"CommandCenter": 9.0,
+	"VehicleFactory": 7.5,
+	"AircraftFactory": 7.5,
+	"AntiGroundTurret": 3.8,
+	"AntiAirTurret": 3.8,
+	"Barracks": 6.5,
+	"PowerPlant": 6.5,
+	"Refinery": 7.0,
+	"Facility": 6.5,
+}
+const ANIM_BUILDING_TYPES = [
+	"CommandCenter",
+	"VehicleFactory",
+	"AircraftFactory",
+	"AntiGroundTurret",
+	"AntiAirTurret",
+	"Barracks",
+	"PowerPlant",
+	"Refinery",
+	"Facility",
+]
 const SPRITE_DIR = "res://assets/sprites/units/"
 const DIRECTIONS = 8
 const WORLD_UNITS_PER_PIXEL = 0.055
@@ -35,6 +62,7 @@ const BASELINES = {
 var _unit = null
 var _material = null
 var _animated = false
+var _anim_frames = 1
 var _clip = -1
 var _clip_time = 0.0
 var _idle_wait = 3.0
@@ -137,9 +165,12 @@ func setup_animated(unit, texture):
 	_unit = unit
 	_animated = true
 	var frame_size = texture.get_height()
+	_anim_frames = texture.get_width() / frame_size
+	var world_size = ANIM_WORLD_SIZES.get(unit.type, 4.0)
+	var is_building = unit.type in ANIM_BUILDING_TYPES
 	var quad = QuadMesh.new()
-	quad.size = Vector2(ANIM_WORLD_SIZE, ANIM_WORLD_SIZE)
-	quad.center_offset = Vector3(0, ANIM_WORLD_SIZE / 2.0, 0)
+	quad.size = Vector2(world_size, world_size)
+	quad.center_offset = Vector3(0, world_size * (0.38 if is_building else 0.5), 0)
 	mesh = quad
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_material = ShaderMaterial.new()
@@ -147,6 +178,7 @@ func setup_animated(unit, texture):
 	_material.set_shader_parameter("sheet", texture)
 	_material.set_shader_parameter("frames", texture.get_width() / frame_size)
 	_material.set_shader_parameter("team_color", unit.color)
+	_material.set_shader_parameter("ring", not is_building)
 	material_override = _material
 	_idle_wait = randf_range(1.0, 8.0)
 
@@ -164,7 +196,9 @@ func _process_animated(delta):
 		_idle_wait = randf_range(2.0, 6.0)
 	_last_position = position_now
 	var frame = 0
-	if _clip >= 0:
+	if _anim_frames < ANIM_CLIPS * ANIM_FRAMES:
+		pass  # statisches Sprite: kein Clip, nur Spiegeln beim Laufen
+	elif _clip >= 0:
 		_clip_time += delta
 		var step_index = int(_clip_time * ANIM_FPS)
 		if step_index >= ANIM_FRAMES:

@@ -7,6 +7,7 @@ uniform sampler2D sheet : source_color, filter_linear;
 uniform int frames = 32;
 uniform int frame = 0;
 uniform bool flip = false;
+uniform bool ring = true;
 uniform vec3 team_color : source_color = vec3(1.0, 0.0, 1.0);
 uniform float construction = 1.0;
 uniform float brightness = 1.0;
@@ -26,9 +27,10 @@ void fragment() {
 	vec4 c = texture(sheet, vec2((u + float(frame)) / float(frames), UV.y));
 	// Teamfarben-Ring unter den Fuessen
 	vec2 p = (UV - vec2(0.5, 0.93)) / vec2(0.30, 0.055);
-	float ring = dot(p, p);
+	float ring_d = dot(p, p);
+	bool ring_on = ring;
 	if (c.a < 0.5) {
-		if (ring < 1.0 && ring > 0.45) {
+		if (ring_on && ring_d < 1.0 && ring_d > 0.45) {
 			ALBEDO = team_color;
 		} else {
 			discard;
