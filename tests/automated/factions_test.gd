@@ -268,6 +268,17 @@ func _run():
 	rocket_power.queue_free()
 	await _frames(3)
 
+	# Bären-Kraftwerke explodieren und beschädigen Nachbarn
+	var boom_power = _spawn_structure(players[2], "baeren/power_big", Vector3(-20, 0, 20))
+	var neighbour = _spawn_unit(me, "shibas/tesla", Vector3(-20, 0, 22))
+	await _frames(3)
+	var neighbour_hp = neighbour.hp
+	boom_power.hp = 0
+	await _frames(3)
+	_check(neighbour.hp == neighbour_hp - 8, "destroyed Reaktor-Kessel damages units nearby")
+	neighbour.queue_free()
+	await _frames(3)
+
 	# Strommangel: Produktion langsamer
 	_check(not me.is_low_power(), "power is fine before overload")
 	for i in range(3):
