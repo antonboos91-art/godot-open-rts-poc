@@ -1,0 +1,1 @@
+--parts out/mod/parts_ai2.json --suit cyber --head-size 0.42 --weapon-len 0.48 --two-hand 0 --grip 0.25 --chest-h 0.62 --chest-z 1.36 --chest-w 0.66 --shoulder-size 0.40 --shoulder-lift 0.02
