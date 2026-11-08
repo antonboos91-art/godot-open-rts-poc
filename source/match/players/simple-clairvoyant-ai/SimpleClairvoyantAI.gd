@@ -6,6 +6,7 @@ enum OffensiveStructure { VEHICLE_FACTORY, AIRCRAFT_FACTORY }
 const PowerController = preload(
 	"res://source/match/players/simple-clairvoyant-ai/PowerController.gd"
 )
+const TechController = preload("res://source/match/players/simple-clairvoyant-ai/TechController.gd")
 const AbilityController = preload(
 	"res://source/match/players/simple-clairvoyant-ai/AbilityController.gd"
 )
@@ -28,6 +29,7 @@ var _resource_requests = {
 var _call_to_perform_during_process = null
 var _power_controller = PowerController.new()
 var _ability_controller = AbilityController.new()
+var _tech_controller = TechController.new()
 
 @onready var _match = find_parent("Match")
 
@@ -52,6 +54,12 @@ func _ready():
 		_on_resource_request.bind(_power_controller, ResourceRequestPriority.HIGH)
 	)
 	_power_controller.setup(self)
+	_tech_controller.name = "TechController"
+	add_child(_tech_controller)
+	_tech_controller.resources_required.connect(
+		_on_resource_request.bind(_tech_controller, ResourceRequestPriority.LOW)
+	)
+	_tech_controller.setup(self)
 	_ability_controller.name = "AbilityController"
 	add_child(_ability_controller)
 	_ability_controller.setup(self)
