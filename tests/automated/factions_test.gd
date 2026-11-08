@@ -364,6 +364,9 @@ func _start_match():
 		player_settings.controller = setup[i][0]
 		player_settings.faction = setup[i][1]
 		player_settings.color = Constants.Player.COLORS[i]
+		# Die beiden KIs sind verbündet: Sonst reibt eine die andere manchmal auf, bevor
+		# sie ihr Kraftwerk bauen kann, und der Kraftwerks-Test schlägt zufällig fehl.
+		player_settings.team = 1 if i > 0 else 0
 		settings.players.append(player_settings)
 	var loading = load("res://source/main-menu/Loading.tscn").instantiate()
 	loading.match_settings = settings

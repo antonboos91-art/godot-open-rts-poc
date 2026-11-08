@@ -19,6 +19,10 @@ var _number_of_pending_worker_resource_requests = 0
 var _number_of_pending_workers = 0
 var _cc_base_position = null
 
+## Mindestvorrat je Rohstoff, unter dem ein Sammler umgeschichtet wird
+const STARVATION_STOCK = 4
+const STARVATION_CHECK_INTERVAL_S = 3.0
+
 @onready var _ai = get_parent()
 
 
@@ -29,6 +33,11 @@ func setup(player):
 	MatchSignals.unit_spawned.connect(_on_unit_spawned)
 	_enforce_number_of_ccs()
 	_enforce_number_of_workers()
+	var timer = Timer.new()
+	timer.wait_time = STARVATION_CHECK_INTERVAL_S
+	timer.autostart = true
+	timer.timeout.connect(_rebalance_if_starving)
+	add_child(timer)
 
 
 func provision(resources, metadata):
@@ -199,6 +208,46 @@ func _retarget_workers_if_necessary():
 	):
 		for worker in _workers:
 			_make_worker_collecting_resources(worker)
+
+
+## Verhindert, dass die KI verhungert: Sammelt niemand einen Rohstoff und ist davon kaum
+## noch etwas da, wird ein Sammler umgesetzt. Sonst blockiert z. B. eine Sammler-Anfrage,
+## die Schrott braucht, für immer die Warteschlange (und damit auch Kraftwerke).
+func _rebalance_if_starving():
+	if _workers.is_empty():
+		return
+	var stats = _calculate_resource_collecting_statistics()
+	var worker_cost = Factions.cost_for(_player, WorkerScene.resource_path)
+	for kind in ["resource_a", "resource_b"]:
+		var other = "resource_b" if kind == "resource_a" else "resource_a"
+		var needed = max(worker_cost.get(kind, 0), STARVATION_STOCK)
+		if stats[kind] > 0 or _player.get(kind) >= needed:
+			continue
+		var resource_unit = null
+		for worker in _workers:
+			if not is_instance_valid(worker):
+				continue
+			var collecting_other = (
+				worker.action != null
+				and worker.action is CollectingResourcesSequentially
+				and worker.action.get_resource_unit() != null
+				and other in worker.action.get_resource_unit()
+			)
+			if worker.action != null and not collecting_other:
+				continue
+			resource_unit = (
+				Utils
+				. Match
+				. Resources
+				. find_resource_unit_closest_to_unit_yet_no_further_than(
+					worker,
+					Constants.Match.Units.NEW_RESOURCE_SEARCH_RADIUS_M,
+					func(r): return kind in r
+				)
+			)
+			if resource_unit != null:
+				worker.action = CollectingResourcesSequentially.new(resource_unit)
+				return
 
 
 func _on_cc_died(cc):

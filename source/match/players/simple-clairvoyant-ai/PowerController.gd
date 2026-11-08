@@ -62,19 +62,24 @@ func _own_units():
 
 
 ## Plant auch Gebäude im Bau mit ein, damit Strom vor dem Bedarf da ist.
+## Wie in C&C baut die KI früh ein erstes eigenes Kraftwerk, auch wenn die Zentrale
+## anfangs genug Strom liefert. Sonst entsteht nie eins, solange die KI noch wenig baut.
 func _on_refresh_timer_timeout():
 	if _pending_requests > 0:
 		return
 	var produced = 0
 	var used = 0
+	var plants = 0
 	for unit in _own_units():
 		if not unit.has_method("is_constructed"):
 			continue
 		var power = Factions.power(Factions.variant_of(unit))
 		if power > 0:
 			produced += power
+			if not unit is CommandCenter:
+				plants += 1
 		else:
 			used -= power
-	if used + POWER_RESERVE > produced:
+	if plants == 0 or used + POWER_RESERVE > produced:
 		_pending_requests += 1
 		resources_required.emit(_power_plant_cost(), "power")
