@@ -224,6 +224,7 @@ func infiltrate_structure(structure, unit):
 func capture_structure(structure, capturer):
 	if Network.is_client():
 		return
+	_notify(structure.global_position, "ÜBERNOMMEN")
 	var hp_fraction = float(structure.hp) / float(structure.hp_max)
 	var variant = Factions.variant_of(structure)
 	var replacement = load(Factions.entry(variant)["archetype"]).instantiate()
@@ -246,6 +247,13 @@ func _notify(position, text):
 ## Kurzer Hinweistext über einer Stelle der Karte (z. B. "Kein Platz").
 @rpc("authority", "call_local", "reliable")
 func show_notice(position, text):
+	match text:
+		"GEHACKT":
+			SoundEffects.play("hack", position)
+		"SABOTIERT":
+			SoundEffects.play("explosion_big", position)
+		"ÜBERNOMMEN":
+			SoundEffects.play("deploy", position)
 	var label = Label3D.new()
 	label.text = text
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -260,6 +268,7 @@ func show_notice(position, text):
 ## Blitz, Rakete usw. einer Superwaffe: kurzer Lichteffekt auf allen Rechnern.
 @rpc("authority", "call_local", "unreliable")
 func show_strike(position, radius):
+	SoundEffects.play("strike", position)
 	var flash = MeshInstance3D.new()
 	var mesh = CylinderMesh.new()
 	mesh.top_radius = radius * 0.15

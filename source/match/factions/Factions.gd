@@ -123,13 +123,33 @@ const STRUCTURES = {
 	BAEREN:
 	[
 		["hq", "Bunkerhöhle", "hq", 8, 8, 10, [], 30, {}],
-		["power", "Diesel-Brummer", "power", 3, 0, 20, ["hq"], 10, {}],
+		[
+			"power",
+			"Diesel-Brummer",
+			"power",
+			3,
+			0,
+			20,
+			["hq"],
+			10,
+			{"blast": {"radius": 4.0, "damage": 4}}
+		],
 		["refinery", "Schmelzofen", "refinery", 6, 0, -8, ["power"], 16, {}],
 		["barracks", "Rekrutenlager", "barracks", 4, 0, -5, ["power"], 12, {}],
 		["factory", "Panzerschmiede", "factory", 7, 1, -10, ["refinery"], 20, {}],
 		["silo", "Vorratsgrube", "facility", 2, 0, -2, ["refinery"], 8, {}],
 		["radar", "Funkmast", "facility", 5, 1, -8, ["factory"], 12, {"ability": "radar"}],
-		["power_big", "Reaktor-Kessel", "power", 6, 1, 40, ["radar"], 12, {}],
+		[
+			"power_big",
+			"Reaktor-Kessel",
+			"power",
+			6,
+			1,
+			40,
+			["radar"],
+			12,
+			{"blast": {"radius": 6.0, "damage": 8}}
+		],
 		["airfield", "Rotor-Scheune", "airfield", 7, 2, -10, ["radar"], 16, {}],
 		["repair", "Schweißerei", "facility", 4, 0, -5, ["factory"], 12, {"ability": "repair"}],
 		["lab", "Tatzen-Werk", "facility", 9, 3, -12, ["radar"], 14, {}],
@@ -781,6 +801,11 @@ static func is_available(player, variant):
 	)
 
 
+## Sprengwirkung beim Zerstören (z. B. Bären-Kraftwerke): {"radius", "damage"} oder leer.
+static func blast(variant):
+	return entry(variant).get("blast", {})
+
+
 ## Fähigkeit einer Variante: "capture", "deploy", "transport", "superweapon", "radar", ... oder "".
 static func ability(variant):
 	return entry(variant).get("ability", "")
@@ -853,6 +878,7 @@ static func _build():
 					"stats": structure_stats,
 					"ability": extras.get("ability", ""),
 					"strike": extras.get("strike", {}),
+					"blast": extras.get("blast", {}),
 					"later": extras.get("later", false),
 				}
 			)
@@ -937,6 +963,7 @@ static func _add(faction, key, data):
 		"ability": "",
 		"cloak": false,
 		"strike": {},
+		"blast": {},
 		"ai": false,
 		"later": false,
 	}

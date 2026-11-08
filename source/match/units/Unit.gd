@@ -83,9 +83,21 @@ func _set_hp(value):
 	hp = max(0, value)
 	if old_hp != null and hp < old_hp:
 		MatchSignals.unit_damaged.emit(self)
+		_play_damage_sound()
 	hp_changed.emit()
 	if hp == 0:
 		_handle_unit_death()
+
+
+func _play_damage_sound():
+	if not is_inside_tree():
+		return
+	if hp == 0:
+		SoundEffects.play(
+			"explosion_big" if has_method("is_constructed") else "explosion", global_position
+		)
+	else:
+		SoundEffects.play("hit", global_position)
 
 
 func _set_hp_max(value):
@@ -183,6 +195,7 @@ func _safety_checks():
 
 
 func _handle_unit_death():
+	_explode()
 	tree_exited.connect(func(): MatchSignals.unit_died.emit(self))
 	# Auf Clients entfernt der MultiplayerSpawner die Einheit.
 	if not Network.is_client():
@@ -224,3 +237,18 @@ func is_hacked():
 
 func hack(seconds):
 	set_meta("hacked_until", Time.get_ticks_msec() + int(seconds * 1000.0))
+
+
+## Kraftwerke der Bären reißen bei der Zerstörung alles in der Nähe mit.
+func _explode():
+	var blast = Factions.blast(Factions.variant_of(self))
+	if blast.is_empty() or Network.is_client() or has_meta("exploded"):
+		return
+	set_meta("exploded", true)
+	var center = global_position_yless
+	var match_node = find_parent("Match")
+	if match_node != null:
+		match_node._notify(global_position, "BUMM!")
+	for unit in get_tree().get_nodes_in_group("units"):
+		if unit != self and unit.global_position_yless.distance_to(center) <= blast["radius"]:
+			unit.hp = unit.hp - blast["damage"]
