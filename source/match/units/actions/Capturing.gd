@@ -1,5 +1,5 @@
-## Ingenieur übernimmt ein fertiges Feindgebäude: läuft hin, das Gebäude wechselt
-## den Besitzer, der Ingenieur verschwindet.
+## Ingenieur / Hackerin / Saboteur gehen zu einem fertigen Feindgebäude und setzen
+## ihre Fähigkeit ein (übernehmen, hacken, sprengen).
 extends "res://source/match/units/actions/Action.gd"
 
 const Factions = preload("res://source/match/factions/Factions.gd")
@@ -14,7 +14,7 @@ var _sub_action = null
 
 static func is_applicable(source_unit, target_unit):
 	return (
-		Factions.ability(Factions.variant_of(source_unit)) == "capture"
+		Factions.ability(Factions.variant_of(source_unit)) in ["capture", "hack", "sabotage"]
 		and target_unit is Structure
 		and target_unit.is_constructed()
 		and not source_unit.player.is_ally_of(target_unit.player)
@@ -36,7 +36,9 @@ func _to_string():
 
 func _capture_or_move_closer():
 	if Utils.Match.Unit.Movement.units_adhere(_unit, _target_unit):
-		find_parent("Match").capture_structure(_target_unit, _unit)
+		find_parent("Match").infiltrate_structure(_target_unit, _unit)
+		if is_inside_tree():
+			queue_free()
 		return
 	_sub_action = MovingToUnit.new(_target_unit)
 	_sub_action.tree_exited.connect(_on_sub_action_finished)

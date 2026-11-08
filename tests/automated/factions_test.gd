@@ -179,6 +179,57 @@ func _run():
 	_check(sw.charge_progress == 0.0, "firing resets the charge")
 	_check(hq.hp == own_unit_hp, "superweapon spares own buildings")
 
+	# Katzen: Hacken, Sabotage, Tarnung, Systemabsturz
+	var hacker = _spawn_unit(me, "katzen/hackerin", victim.global_position + Vector3(0, 0, 7))
+	await _frames(3)
+	_check(hacker.attack_domains.is_empty(), "hacker cannot attack")
+	_check(not victim.is_hacked(), "target is not hacked at first")
+	_match.send_command("unit", [hacker], [_match.get_path_to(victim)])
+	var hacked = await _wait_until(func(): return victim.is_hacked(), 20.0)
+	_check(hacked, "hacker hacks the enemy structure")
+	_check(Factions.entry("katzen/hackerin")["ability"] == "hack", "hacker ability is hack")
+
+	var target_power = _spawn_structure(
+		players[2], "baeren/power", victim.global_position + Vector3(0, 0, -9)
+	)
+	await _frames(3)
+	var power_hp = target_power.hp
+	var saboteur = _spawn_unit(
+		me, "katzen/saboteur", target_power.global_position + Vector3(0, 0, 4)
+	)
+	await _frames(3)
+	_match.send_command("unit", [saboteur], [_match.get_path_to(target_power)])
+	var sabotaged = await _wait_until(
+		func(): return not is_instance_valid(target_power) or target_power.hp < power_hp, 20.0
+	)
+	_check(sabotaged, "saboteur damages the enemy structure")
+	await _frames(5)
+	_check(not is_instance_valid(saboteur), "saboteur is used up")
+
+	var ghost = _spawn_unit(me, "katzen/phantom", Vector3(-20, 0, 20))
+	await _frames(3)
+	_check(Factions.is_hidden_from(ghost, players[2]), "Phantom is hidden from far enemies")
+	_check(not Factions.is_hidden_from(ghost, me), "Phantom is visible to its owner")
+	var spotter = _spawn_unit(players[2], "baeren/bazooka", Vector3(-20, 0, 22))
+	await _frames(3)
+	_check(not Factions.is_hidden_from(ghost, players[2]), "close enemies detect the Phantom")
+	ghost.queue_free()
+	spotter.queue_free()
+
+	# Strom frei machen: die Satelliten-Station abreißen, sonst ist das Netz überlastet
+	sw.queue_free()
+	await _frames(3)
+	var crash = _spawn_structure(me, "katzen/superweapon", hq.global_position + Vector3(-12, 0, 8))
+	await _frames(3)
+	var crash_target = _own(enemy).filter(func(u): return u.variant == "katzen/hq")[0]
+	crash.charge_progress = 1.0
+	_match.send_command("superweapon", [crash], [crash_target.global_position])
+	await _frames(3)
+	_check(crash_target.is_hacked(), "Systemabsturz disables enemy buildings")
+	_check(crash_target.hp == crash_target.hp_max, "Systemabsturz does no damage")
+	crash.queue_free()
+	await _frames(3)
+
 	# Strommangel: Produktion langsamer
 	_check(not me.is_low_power(), "power is fine before overload")
 	for i in range(3):

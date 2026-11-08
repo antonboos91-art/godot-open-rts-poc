@@ -68,7 +68,7 @@ func _schedule_hit():
 func _hit_target():
 	if _teardown_if_out_of_range():
 		return
-	if _unit.has_method("is_constructed") and _unit.player.is_low_power():
+	if _unit.has_method("is_constructed") and (_unit.player.is_low_power() or _unit.is_hacked()):
 		# Abwehrtürme schießen bei Strommangel nicht
 		_unit.set_meta("next_attack_availability_time", Time.get_ticks_msec() + 500)
 		_schedule_hit()
