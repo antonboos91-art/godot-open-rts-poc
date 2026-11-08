@@ -8,7 +8,7 @@ VOICE = ("A gruff, deep adult male soldier voice, calm and dead serious, clipped
 REF = "Shiba reporting. Yes, commander. Awaiting orders."
 def graph(text, prefix, seed=7):
     return {
-     "1":{"class_type":"F5TTSEngineNode","inputs":{"language":"F5TTS_v1_Base","device":"auto","temperature":0.8,"speed":0.95,"target_rms":0.1,"cross_fade_duration":0.15,"nfe_step":32,"cfg_strength":2.0}},
+     "1":{"class_type":"F5TTSEngineNode","inputs":{"language":"F5TTS_v1_Base","device":"auto","temperature":0.6,"speed":1.12,"target_rms":0.1,"cross_fade_duration":0.15,"nfe_step":32,"cfg_strength":2.0}},
      "3":{"class_type":"UnifiedTTSTextNode","inputs":{"TTS_engine":["1",0],"text":text,"narrator_voice":"voices_examples/male/male_01.wav","seed":seed}},
      "4":{"class_type":"SaveAudio","inputs":{"audio":["3",0],"filename_prefix":"voice/"+prefix}}}
 def submit(g):
