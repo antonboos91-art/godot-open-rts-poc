@@ -47,7 +47,7 @@ func show_production(structure):
 func show_ability(unit):
 	var variant = Factions.variant_of(unit)
 	var ability = Factions.ability(variant)
-	if ability != "deploy" and ability != "superweapon":
+	if not ability in ["deploy", "superweapon", "transport"]:
 		return false
 	if unit.has_method("is_constructed") and not unit.is_constructed():
 		return false
@@ -145,6 +145,13 @@ func _refresh_ability_button():
 	if not is_instance_valid(_ability_unit) or _ability_button == null:
 		return
 	var variant = Factions.variant_of(_ability_unit)
+	if Factions.ability(variant) == "transport":
+		var cargo = _ability_unit.cargo_count
+		_ability_button.disabled = cargo == 0
+		_ability_button.modulate = Color.WHITE if cargo > 0 else Color(0.6, 0.6, 0.6)
+		_ability_label.text = "%d/%d" % [cargo, Constants.Match.Units.CARGO_CAPACITY]
+		_ability_button.tooltip_text = "Absetzen (Infanterie anklicken zum Einsteigen)"
+		return
 	if Factions.ability(variant) == "deploy":
 		_ability_button.tooltip_text = (
 			"Entfalten zu: %s" % Factions.display_name(Factions.deploy_target(variant))
@@ -164,7 +171,10 @@ func _refresh_ability_button():
 func _on_ability_pressed():
 	if not is_instance_valid(_ability_unit):
 		return
-	if Factions.ability(Factions.variant_of(_ability_unit)) == "deploy":
+	var ability = Factions.ability(Factions.variant_of(_ability_unit))
+	if ability == "transport":
+		_ability_unit.find_parent("Match").send_command("unload", [_ability_unit])
+	elif ability == "deploy":
 		_ability_unit.find_parent("Match").send_command("deploy", [_ability_unit])
 	elif _ability_unit.charge_progress >= 1.0:
 		MatchSignals.superweapon_targeting_requested.emit(_ability_unit)

@@ -286,6 +286,7 @@ class Units:
 	const EMPTY_SPACE_RADIUS_SURROUNDING_STRUCTURE_M = MOVING_UNIT_RADIUS_MAX_M * 2.5
 	const STRUCTURE_CONSTRUCTING_SPEED = 0.3  # progress [0.0..1.0] per second
 	const LOW_POWER_PRODUCTION_FACTOR = 0.5  # Produktion bei Strommangel langsamer
+	const CARGO_CAPACITY = 5
 	const REPAIR_RADIUS_M = 5.0
 	const REPAIR_HP_PER_S = 0.5
 

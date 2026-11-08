@@ -15,6 +15,7 @@ class Actions:
 	const Constructing = preload("res://source/match/units/actions/Constructing.gd")
 	const Capturing = preload("res://source/match/units/actions/Capturing.gd")
 	const Repairing = preload("res://source/match/units/actions/Repairing.gd")
+	const Loading = preload("res://source/match/units/actions/Loading.gd")
 
 
 @onready var _player = get_parent()
@@ -114,6 +115,9 @@ func _navigate_unit_towards_unit(unit, target_unit):
 		return true
 	if Actions.Capturing.is_applicable(unit, target_unit):
 		unit.action = Actions.Capturing.new(target_unit)
+		return true
+	if Actions.Loading.is_applicable(unit, target_unit):
+		unit.action = Actions.Loading.new(target_unit)
 		return true
 	if Actions.Repairing.is_applicable(unit, target_unit):
 		unit.action = Actions.Repairing.new(target_unit)
