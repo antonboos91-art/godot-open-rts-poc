@@ -179,6 +179,21 @@ def star(name, center, r, coll, mat, normal_rot=(0, 0, 0), thickness=0.004):
 
 
 # ---------- Panzer ----------
+def _faction_ears(R, M, x, y, z, k=1.0):
+    """Volksohren: Katzen = hohe schmale Spitzohren, Baeren = runde Ohren."""
+    for s in (-1, 1):
+        if _FACTION == "baeren":
+            o = cyl(f"bear_ear_{s}", (s * x * 1.5, y, z), 0.13 * k, 0.07, R, M["paint"], "Z", 20, 0.008)
+            cyl(f"bear_ear_in_{s}", (s * x * 1.5, y, z + 0.04), 0.08 * k, 0.04, R, M["white"], "Z", 16, 0.003)
+        else:
+            o = prism(f"cat_ear_{s}", [(-0.14 * k, 0.0), (0.14 * k, 0.0), (0.0, 0.5 * k)], -0.025, 0.025, R, M["paint"], 0.01)
+            o.location = (s * x, y, z)
+            o.rotation_euler = (0, math.radians(s * 30), math.radians(90))
+            i = prism(f"cat_ear_in_{s}", [(-0.05 * k, 0.03), (0.05 * k, 0.03), (0.0, 0.36 * k)], -0.03, 0.03, R, M["glow"], 0.003)
+            i.location = (s * x, y + 0.02, z)
+            i.rotation_euler = (0, math.radians(s * 30), math.radians(90))
+
+
 def build(turret_kind="tesla"):
     M = materials()
     colls = {}
@@ -258,14 +273,17 @@ def build(turret_kind="tesla"):
     poly_prism_z("turret_body", oct_pts, TURRET_Z, TURRET_Z + 0.3, R, M["paint"], 0.86, 0.025)
     poly_prism_z("turret_ring", [(math.cos(a) * 0.45, math.sin(a) * 0.45) for a in [i * math.pi / 12 for i in range(24)]],
                  TURRET_Z - 0.03, TURRET_Z + 0.01, R, M["dark"], 1.0, 0)
-    # Shiba-Ohren als große, nach außen geneigte Panzerplatten oben
-    for s in (-1, 1):
-        o = prism(f"ear_{s}", [(-0.15, 0.0), (0.15, 0.0), (0.03, 0.32)], -0.03, 0.03, R, M["paint"], 0.012)
-        o.location = (s * 0.24, -0.08, TURRET_Z + 0.27)
-        o.rotation_euler = (0, math.radians(s * 18), math.radians(90))
-        inner = prism(f"ear_inner_{s}", [(-0.09, 0.03), (0.09, 0.03), (0.02, 0.22)], -0.035, 0.035, R, M["fur"], 0.004)
-        inner.location = (s * 0.24, -0.06, TURRET_Z + 0.27)
-        inner.rotation_euler = (0, math.radians(s * 18), math.radians(90))
+    # Volksohren (Shiba: große schräge Panzerplatten)
+    if _FACTION != "shibas":
+        _faction_ears(R, M, 0.24, -0.08, TURRET_Z + 0.27)
+    else:
+        for s in (-1, 1):
+            o = prism(f"ear_{s}", [(-0.15, 0.0), (0.15, 0.0), (0.03, 0.32)], -0.03, 0.03, R, M["paint"], 0.012)
+            o.location = (s * 0.24, -0.08, TURRET_Z + 0.27)
+            o.rotation_euler = (0, math.radians(s * 18), math.radians(90))
+            inner = prism(f"ear_inner_{s}", [(-0.09, 0.03), (0.09, 0.03), (0.02, 0.22)], -0.035, 0.035, R, M["fur"], 0.004)
+            inner.location = (s * 0.24, -0.06, TURRET_Z + 0.27)
+            inner.rotation_euler = (0, math.radians(s * 18), math.radians(90))
     # Weißer Streifen rund um den Turm
     band = [(x * 1.005, y * 1.005) for x, y in oct_pts]
     poly_prism_z("turret_band", band, TURRET_Z + 0.07, TURRET_Z + 0.12, R, M["white"], 0.98, 0)
@@ -408,14 +426,16 @@ def _turret_rockets(R, M):
                           r2=0.004)
                 tip.rotation_euler = (math.radians(-90 + 12), 0, 0)
         star(f"pod_star_{s}", (s * 0.425, 0.0, TURRET_Z + 0.38), 0.07, R, M["white"], (0, math.radians(s * 90), 0))
-    # Shiba-Ohren als Visier-Abdeckungen hinten
-    for s in (-1, 1):
-        o = prism(f"ear_{s}", [(-0.11, 0.0), (0.11, 0.0), (0.02, 0.24)], -0.025, 0.025, R, M["paint"], 0.01)
-        o.location = (s * 0.14, -0.3, TURRET_Z + 0.2)
-        o.rotation_euler = (0, math.radians(s * 18), math.radians(90))
-        inner = prism(f"ear_inner_{s}", [(-0.065, 0.02), (0.065, 0.02), (0.015, 0.16)], -0.03, 0.03, R, M["fur"], 0.004)
-        inner.location = (s * 0.14, -0.28, TURRET_Z + 0.2)
-        inner.rotation_euler = (0, math.radians(s * 18), math.radians(90))
+    if _FACTION != "shibas":
+        _faction_ears(R, M, 0.14, -0.3, TURRET_Z + 0.2, 0.8)
+    else:
+        for s in (-1, 1):
+            o = prism(f"ear_{s}", [(-0.11, 0.0), (0.11, 0.0), (0.02, 0.24)], -0.025, 0.025, R, M["paint"], 0.01)
+            o.location = (s * 0.14, -0.3, TURRET_Z + 0.2)
+            o.rotation_euler = (0, math.radians(s * 18), math.radians(90))
+            inner = prism(f"ear_inner_{s}", [(-0.065, 0.02), (0.065, 0.02), (0.015, 0.16)], -0.03, 0.03, R, M["fur"], 0.004)
+            inner.location = (s * 0.14, -0.28, TURRET_Z + 0.2)
+            inner.rotation_euler = (0, math.radians(s * 18), math.radians(90))
     # Zielradar
     cyl("radar_post", (0, -0.25, TURRET_Z + 0.3), 0.02, 0.2, R, M["steel"], "Z", 8, 0)
     dish = cyl("radar_dish", (0, -0.2, TURRET_Z + 0.42), 0.11, 0.03, R, M["white"], "Y", 20, 0.004)
