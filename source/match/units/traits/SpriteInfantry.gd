@@ -53,8 +53,9 @@ func _setup(unit, base):
 	_meta = JSON.parse_string(f.get_as_text())
 	# Figur ist im Render 1.8 m hoch, Bild zeigt ortho Meter -> auf FIGURE_HEIGHT skalieren
 	var ortho = float(_meta.get("ortho", 3.3))
-	_size = ortho * FIGURE_HEIGHT / 1.8
-	var target_z = float(_meta.get("target_z", 0.85)) * FIGURE_HEIGHT / 1.8
+	var render_h = float(_meta.get("figure_height", 1.8))
+	_size = ortho * FIGURE_HEIGHT / render_h
+	var target_z = float(_meta.get("target_z", 0.85)) * FIGURE_HEIGHT / render_h
 	_quad = MeshInstance3D.new()
 	_quad.name = "Body"
 	var q = QuadMesh.new()
