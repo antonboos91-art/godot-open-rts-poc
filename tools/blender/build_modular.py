@@ -9,10 +9,13 @@ from mathutils import Vector, Matrix, Euler
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 opt = {"--parts": "", "--out": "out/mod/trooper", "--size": "384", "--dirs": "8",
        "--lib": "downloads/ual1/extracted/Animation Library[Standard]/Godot/AnimationLibrary_Godot_Standard.glb",
-       "--rifle-rot": "0,0,0", "--grip": "0.35", "--fore": "0.62", "--head-rot": "0", "--head-size": "0.44", "--suit": "plain", "--weapon-len": "0.85", "--two-hand": "1", "--armor": "0", "--chest-h": "0.52", "--shoulder-size": "0.26", "--chest-z": "1.27", "--chest-w": "0.5", "--shoulder-lift": "0.03"}
+       "--rifle-rot": "0,0,0", "--grip": "0.35", "--fore": "0.62", "--head-rot": "0", "--head-size": "0.44", "--suit": "plain", "--weapon-len": "0.85", "--two-hand": "1", "--armor": "0", "--chest-h": "0.52", "--shoulder-size": "0.26", "--chest-z": "1.27", "--chest-w": "0.5", "--shoulder-lift": "0.03", "--pal": "shibas"}
 for i, v in enumerate(argv):
     if v in opt and i + 1 < len(argv):
         opt[v] = argv[i + 1]
+PAL = {"shibas": ((0.02, 0.04, 0.11, 1), (0.75, 0.78, 0.82, 1), (0.15, 0.75, 1.0, 1), (0.42, 0.44, 0.48, 1)),
+       "katzen": ((0.015, 0.01, 0.035, 1), (0.20, 0.12, 0.32, 1), (0.75, 0.2, 1.0, 1), (0.24, 0.17, 0.33, 1)),
+       "baeren": ((0.13, 0.02, 0.015, 1), (0.80, 0.58, 0.14, 1), (1.0, 0.65, 0.12, 1), (0.58, 0.42, 0.16, 1))}[opt["--pal"]]
 PREVIEW = "--preview" in argv
 SIZE = int(opt["--size"])
 DIRS = int(opt["--dirs"])
@@ -75,11 +78,11 @@ if opt["--suit"] == "cyber":
     nt.links.new(sep.outputs[0], plates.inputs[0])
     mix = nt.nodes.new("ShaderNodeMix")
     mix.data_type = "RGBA"
-    mix.inputs[6].default_value = (0.02, 0.04, 0.11, 1)
-    mix.inputs[7].default_value = (0.75, 0.78, 0.82, 1)
+    mix.inputs[6].default_value = PAL[0]
+    mix.inputs[7].default_value = PAL[1]
     nt.links.new(plates.outputs[0], mix.inputs[0])
     nt.links.new(mix.outputs[2], p.inputs["Base Color"])
-    p.inputs["Emission Color"].default_value = (0.15, 0.75, 1.0, 1)
+    p.inputs["Emission Color"].default_value = PAL[2]
     boost = nt.nodes.new("ShaderNodeMath")
     boost.operation = "MULTIPLY"
     boost.inputs[1].default_value = 2.5
@@ -225,7 +228,7 @@ def armor_mats():
     glow.use_nodes = True
     gp = glow.node_tree.nodes["Principled BSDF"]
     gp.inputs["Base Color"].default_value = (0.1, 0.6, 1.0, 1)
-    gp.inputs["Emission Color"].default_value = (0.15, 0.75, 1.0, 1)
+    gp.inputs["Emission Color"].default_value = PAL[2]
     gp.inputs["Emission Strength"].default_value = 4.0
     return plate, accent, glow
 
@@ -336,7 +339,7 @@ def tint_dark_silver(o):
         mix.data_type = "RGBA"
         mix.blend_type = "MULTIPLY"
         mix.inputs[0].default_value = 1.0
-        mix.inputs[7].default_value = (0.42, 0.44, 0.48, 1)
+        mix.inputs[7].default_value = PAL[3]
         if src is not None:
             nt.links.new(src, mix.inputs[6])
         else:

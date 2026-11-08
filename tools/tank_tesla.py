@@ -46,17 +46,28 @@ def _mat(name, color, metal=0.2, rough=0.5, edge_wear=0.0):
     return m
 
 
+import os
+_FACTION = os.environ.get("FACTION", "shibas")
+# Volksfarben: paint = Hauptlack, white = Zweitfarbe, glass/glow = Leuchtfarbe, fur = Fell
+_PAL = {
+    "shibas": dict(paint=(0.012, 0.045, 0.2), white=(0.75, 0.77, 0.8), glass=(0.15, 0.6, 1.0), glow=(0.35, 0.75, 1.0), fur=(0.62, 0.3, 0.08)),
+    "katzen": dict(paint=(0.02, 0.012, 0.04), white=(0.28, 0.12, 0.45), glass=(0.65, 0.2, 1.0), glow=(0.75, 0.3, 1.0), fur=(0.03, 0.03, 0.04)),
+    "baeren": dict(paint=(0.28, 0.025, 0.02), white=(0.8, 0.58, 0.12), glass=(1.0, 0.6, 0.1), glow=(1.0, 0.7, 0.2), fur=(0.25, 0.12, 0.05)),
+}[_FACTION]
+
+
 def materials():
+    P = _PAL
     return {
-        "paint": _mat("Paint", (0.012, 0.045, 0.2), 0.3, 0.38),
-        "white": _mat("White", (0.75, 0.77, 0.8), 0.1, 0.4),
+        "paint": _mat("Paint", P["paint"], 0.3, 0.38),
+        "white": _mat("White", P["white"], 0.1, 0.4),
         "dark": _mat("Dark", (0.015, 0.02, 0.03), 0.6, 0.55),
         "steel": _mat("Steel", (0.35, 0.36, 0.38), 0.9, 0.3),
         "track": _mat("Track", (0.06, 0.06, 0.065), 0.85, 0.5),
         "rubber": _mat("Rubber", (0.03, 0.03, 0.03), 0.0, 0.8),
-        "glass": _mat("Glass", (0.15, 0.6, 1.0), 0.0, 0.1),
-        "glow": _emit("Glow", (0.35, 0.75, 1.0), 6.0),
-        "fur": _mat("Fur", (0.62, 0.3, 0.08), 0.0, 0.7),
+        "glass": _mat("Glass", P["glass"], 0.0, 0.1),
+        "glow": _emit("Glow", P["glow"], 6.0),
+        "fur": _mat("Fur", P["fur"], 0.0, 0.7),
     }
 
 
