@@ -9,8 +9,16 @@ extends "res://source/match/units/traits/TankVisual.gd"
 const SHADER = preload("res://source/shaders/3d/vehicle_sprite.gdshader")
 const DIR = "res://assets/sprites/vehicles/"
 const ROTOR_FPS = 24.0
+## Massstab: Fahrzeuge sollen neben Infanterie (StarCraft-Niveau) deutlich groesser wirken.
+const SCALE_BOOST = 1.45
 
 var _meta = {}
+
+
+func _s():
+	return float(_meta.get("scale", 0.8)) * SCALE_BOOST
+
+
 var _hull_mat = null
 var _turret_mat = null
 var _turret_quad = null
@@ -51,8 +59,8 @@ func _setup_sprites(unit, base):
 	_columns = int(_meta.get("columns", 64))
 	_rows = int(_meta.get("rows", 4))
 	_has_turret = bool(_meta.get("turret", true))
-	var size = float(_meta.get("ortho", 3.6)) * float(_meta.get("scale", 0.8))
-	var center_y = float(_meta.get("target_z", 0.45)) * float(_meta.get("scale", 0.8))
+	var size = float(_meta.get("ortho", 3.6)) * _s()
+	var center_y = float(_meta.get("target_z", 0.45)) * _s()
 	if bool(_meta.get("air", false)):
 		center_y = 0.0  # Fluggeräte: Einheitenursprung liegt schon in Flughöhe
 	_hull_mat = _make_quad(base + "_hull.png", size, center_y, _rows, 3.0, "Hull")
@@ -143,7 +151,7 @@ func _process(delta):
 		row = int(_anim_time * ROTOR_FPS) % _rows
 	else:
 		_track_offset += (
-			_speed * delta / float(_meta.get("track_pitch", 0.06)) / float(_meta.get("scale", 0.8))
+			_speed * delta / float(_meta.get("track_pitch", 0.06)) / _s()
 		)
 		row = int(floor(_track_offset * _rows)) % _rows
 		if row < 0:
@@ -185,7 +193,7 @@ func _fire(target):
 	var aim_yaw = _hull_yaw() + (_turret_yaw if _has_turret else 0.0)
 	var dir = Vector3(-sin(aim_yaw), 0, -cos(aim_yaw))
 	var side = Vector3(cos(aim_yaw), 0, -sin(aim_yaw))
-	var s = float(_meta.get("scale", 0.8))
+	var s = _s()
 	var base_y = 0.0 if bool(_meta.get("air", false)) else 0.0
 	var muzzle = (
 		global_position

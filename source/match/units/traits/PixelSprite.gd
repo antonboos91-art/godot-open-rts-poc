@@ -27,6 +27,8 @@ const ANIM_WORLD_SIZES = {
 	"Refinery": 7.0,
 	"Facility": 6.5,
 }
+## Gebaeude-Sprites sind kleiner als die Rohgroesse, damit sie zum Einheiten-Massstab passen
+const BUILDING_SCALE = 0.68
 const ANIM_BUILDING_TYPES = [
 	"CommandCenter",
 	"VehicleFactory",
@@ -236,6 +238,8 @@ func setup_animated(unit, texture):
 	var frame_size = texture.get_height()
 	_anim_frames = texture.get_width() / frame_size
 	var world_size = ANIM_WORLD_SIZES.get(unit.type, 4.0)
+	if unit.type in ANIM_BUILDING_TYPES:
+		world_size *= BUILDING_SCALE
 	var is_building = unit.type in ANIM_BUILDING_TYPES
 	var quad = QuadMesh.new()
 	quad.size = Vector2(world_size, world_size)
