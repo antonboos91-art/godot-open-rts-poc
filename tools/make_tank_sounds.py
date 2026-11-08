@@ -88,3 +88,34 @@ crack = bp(rng.normal(0, 1, n), 800, 6000) * np.exp(-tt * 25)
 impact = np.tanh((blast + crack + debris) * 1.4)
 sf.write(OUT + "shell_impact.wav", norm(impact), SR)
 print("ok")
+
+# Raketenstart: Zischen mit Druckstoß
+dur = 1.4
+n = int(dur * SR)
+tt = np.arange(n) / SR
+hiss = bp(rng.normal(0, 1, n), 1200, 8000) * np.exp(-tt * 2.2) * (1 - np.exp(-tt * 60))
+whoosh = lp(rng.normal(0, 1, n), 500) * np.exp(-tt * 3.0) * 1.5
+pop = lp(rng.normal(0, 1, n), 250) * np.exp(-tt * 30) * 2.0
+sf.write(OUT + "rocket_launch.wav", norm(np.tanh((hiss + whoosh + pop) * 1.3)), SR)
+
+# MG-Feuerstoß: 5 schnelle Schüsse
+dur = 0.7
+n = int(dur * SR)
+mg = np.zeros(n)
+for k in range(5):
+    pos = int(k * 0.085 * SR)
+    ln = int(0.12 * SR)
+    t2 = np.arange(ln) / SR
+    shot = bp(rng.normal(0, 1, ln), 600, 7000) * np.exp(-t2 * 45) + lp(rng.normal(0, 1, ln), 300) * np.exp(-t2 * 25)
+    mg[pos:pos + ln] += shot[: max(0, min(ln, n - pos))]
+sf.write(OUT + "mg_burst.wav", norm(np.tanh(mg * 1.5)), SR)
+
+# Rotor-Schleife: Rotorblatt-Wummern (~18 Hz) über Turbinenrauschen
+dur = 3.0
+n = int(dur * SR)
+tt = np.arange(n) / SR
+chop = (0.5 + 0.5 * np.sin(2 * np.pi * 18 * tt)) ** 4
+rotor = lp(rng.normal(0, 1, n), 400) * chop * 1.2
+turbine = bp(rng.normal(0, 1, n), 2500, 5000) * 0.15 + np.sin(2 * np.pi * 1450 * tt) * 0.03
+sf.write(OUT + "rotor_loop.wav", norm(loopify(rotor + turbine, 0.2), 0.6), SR)
+print("ok2")

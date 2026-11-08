@@ -168,7 +168,7 @@ def star(name, center, r, coll, mat, normal_rot=(0, 0, 0), thickness=0.004):
 
 
 # ---------- Panzer ----------
-def build():
+def build(turret_kind="tesla"):
     M = materials()
     colls = {}
     for n in ("HULL", "TRACKS", "TURRET"):
@@ -235,6 +235,9 @@ def build():
         cyl(f"sprocket_{s}", (s * wheel_x, y_back - 0.05, 0.22), 0.13, TRACK_W * 0.6, H, M["steel"], "X", 12)
         cyl(f"idler_{s}", (s * wheel_x, y_front + 0.05, 0.22), 0.12, TRACK_W * 0.6, H, M["dark"], "X", 24)
     track_links(T, M, wheel_x, y_back - 0.05, y_front + 0.05)
+    if turret_kind == "rockets":
+        _turret_rockets(R, M)
+        return colls
 
     # Turm: achteckig, geneigte Seiten, Drehpunkt bei (0, 0)
     tw, tl = 0.5, 0.62
@@ -367,3 +370,43 @@ def place_track(offset):
         pos = Vector((o["track_x"], y, z)) + nrm * o.get("track_out", 0.0)
         o.location = pos
         o.rotation_euler = (ang, 0, 0)
+
+
+def _turret_rockets(R, M):
+    """Raketen-Rudel: drehbarer Werfer mit zwei 2x3-Raketenkästen, Drehpunkt (0, 0)."""
+    poly_prism_z("turret_ring", [(math.cos(a) * 0.42, math.sin(a) * 0.42) for a in [i * math.pi / 12 for i in range(24)]],
+                 TURRET_Z - 0.03, TURRET_Z + 0.06, R, M["dark"], 1.0, 0)
+    # Sockel mit Schräge
+    base = [(0.32, 0.36), (0.38, 0.1), (0.38, -0.4), (-0.38, -0.4), (-0.38, 0.1), (-0.32, 0.36)]
+    poly_prism_z("launcher_base", base, TURRET_Z + 0.04, TURRET_Z + 0.2, R, M["paint"], 0.92, 0.02)
+    band = [(x * 1.01, y * 1.01) for x, y in base]
+    poly_prism_z("launcher_band", band, TURRET_Z + 0.08, TURRET_Z + 0.12, R, M["white"], 0.98, 0)
+    # Zwei Raketenkästen, leicht nach oben geneigt
+    for s in (-1, 1):
+        pod = box(f"pod_{s}", (s * 0.27, 0.05, TURRET_Z + 0.36), (0.3, 0.75, 0.26), R, M["paint"], 0.025,
+                  rot=(math.radians(12), 0, 0))
+        for row in range(2):
+            for col in range(3):
+                x = s * 0.27 + (col - 1) * 0.085
+                z = TURRET_Z + 0.31 + row * 0.1
+                y = 0.05 + 0.375 * math.cos(math.radians(12)) + 0.01
+                zz = z + 0.375 * math.sin(math.radians(12))
+                tube = cyl(f"tube_{s}_{row}_{col}", (x, y, zz), 0.035, 0.03, R, M["dark"], "Y", 12, 0)
+                tube.rotation_euler = (math.radians(-90 + 12), 0, 0)
+                tip = cyl(f"tip_{s}_{row}_{col}", (x, y + 0.012, zz + 0.003), 0.024, 0.04, R, M["white"], "Y", 12, 0,
+                          r2=0.004)
+                tip.rotation_euler = (math.radians(-90 + 12), 0, 0)
+        star(f"pod_star_{s}", (s * 0.425, 0.0, TURRET_Z + 0.38), 0.07, R, M["white"], (0, math.radians(s * 90), 0))
+    # Shiba-Ohren als Visier-Abdeckungen hinten
+    for s in (-1, 1):
+        o = prism(f"ear_{s}", [(-0.11, 0.0), (0.11, 0.0), (0.02, 0.24)], -0.025, 0.025, R, M["paint"], 0.01)
+        o.location = (s * 0.14, -0.3, TURRET_Z + 0.2)
+        o.rotation_euler = (0, math.radians(s * 18), math.radians(90))
+        inner = prism(f"ear_inner_{s}", [(-0.065, 0.02), (0.065, 0.02), (0.015, 0.16)], -0.03, 0.03, R, M["fur"], 0.004)
+        inner.location = (s * 0.14, -0.28, TURRET_Z + 0.2)
+        inner.rotation_euler = (0, math.radians(s * 18), math.radians(90))
+    # Zielradar
+    cyl("radar_post", (0, -0.25, TURRET_Z + 0.3), 0.02, 0.2, R, M["steel"], "Z", 8, 0)
+    dish = cyl("radar_dish", (0, -0.2, TURRET_Z + 0.42), 0.11, 0.03, R, M["white"], "Y", 20, 0.004)
+    dish.rotation_euler = (math.radians(-70), 0, 0)
+    cyl("antenna", (-0.3, -0.36, TURRET_Z + 0.5), 0.006, 0.5, R, M["dark"], "Z", 6, 0)

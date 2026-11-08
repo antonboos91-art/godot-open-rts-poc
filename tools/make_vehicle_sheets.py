@@ -3,6 +3,12 @@
 Ergebnis: <ziel>_hull.png (Zeilen = Kettenframes), <ziel>_turret.png, <ziel>.json"""
 import glob, json, os, sys
 from PIL import Image
+
+
+def _overrides(dst):
+    p = os.path.join(os.path.dirname(__file__), "vehicle_overrides.json")
+    return json.load(open(p)).get(os.path.basename(dst), {}) if os.path.exists(p) else {}
+
 src, dst = sys.argv[1], sys.argv[2]
 scale = float(sys.argv[3]) if len(sys.argv) > 3 else 0.8
 hull = sorted(glob.glob(src + "/hull_*.png"))
@@ -22,5 +28,5 @@ for f in tur:
 ts.save(dst + "_turret.png")
 json.dump({"columns": dirs, "rows": len(frames), "ortho": 3.6, "scale": scale, "target_z": 0.45,
            "track_pitch": 0.06, "muzzle_z": 0.77, "muzzle_dist": 1.85, "recoil": 0.18,
-           "mirror": True}, open(dst + ".json", "w"), indent=1)
+           "mirror": True, **_overrides(dst)}, open(dst + ".json", "w"), indent=1)
 print("ok", sheet.size, ts.size)

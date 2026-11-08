@@ -60,6 +60,8 @@ sc.collection.objects.link(sun)
 bpy.ops.mesh.primitive_plane_add(size=20)
 ground = bpy.context.active_object
 ground.is_shadow_catcher = True
+if getattr(model, "NO_SHADOW", False):
+    ground.hide_render = True  # Fluggeräte: kein Bodenschatten direkt darunter
 
 cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
 cam.data.type = "ORTHO"

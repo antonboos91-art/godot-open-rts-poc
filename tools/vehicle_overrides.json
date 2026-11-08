@@ -1,0 +1,9 @@
+{
+ "shibas_tesla":   {"weapon": "cannon"},
+ "shibas_raketen": {"weapon": "rockets", "muzzle_z": 0.98, "muzzle_dist": 0.45, "muzzle_side": 0.27, "recoil": 0.06},
+ "shibas_buggy":   {"weapon": "mg", "muzzle_z": 1.1, "muzzle_dist": 0.75, "recoil": 0.02, "engine": "light"},
+ "shibas_sammler": {"turret": false, "weapon": "none", "engine": "truck"},
+ "shibas_baumobil":{"turret": false, "weapon": "none", "engine": "truck"},
+ "shibas_gewitter":{"turret": false, "weapon": "rockets", "anim": "always", "air": true, "muzzle_z": 0.35, "muzzle_dist": 0.3, "muzzle_side": 0.58, "engine": "rotor"},
+ "shibas_wespe":   {"turret": false, "weapon": "mg", "anim": "always", "air": true, "muzzle_z": 0.31, "muzzle_dist": 0.5, "engine": "rotor"}
+}

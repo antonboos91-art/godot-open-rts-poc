@@ -8,5 +8,6 @@
  "muzzle_z": 0.77,
  "muzzle_dist": 1.85,
  "recoil": 0.18,
- "mirror": true
+ "mirror": true,
+ "weapon": "cannon"
 }
