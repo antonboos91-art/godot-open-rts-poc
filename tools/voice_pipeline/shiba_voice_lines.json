@@ -1,0 +1,25 @@
+{
+  "faction": "shibas",
+  "style": "deep gruff 90s RTS soldier, calm military radio voice, dead serious delivery, short clipped lines",
+  "units": {
+    "all": {
+      "select": ["Shiba reporting.", "Yes, commander.", "Awaiting orders.", "Ready for duty.", "Standing by."],
+      "move": ["Moving out.", "On my way.", "Roger that.", "Affirmative.", "Sniffing out the route."],
+      "attack": ["Engaging the enemy.", "For the pack!", "Weapons hot.", "Target acquired.", "No paw back!"],
+      "ack_build": ["Construction underway.", "Building in progress."],
+      "death": ["Tell my pack... I was a good boy.", "Argh... the leash... is cut."],
+      "annoyed": ["Do you have any treats, commander?", "Where are my treats?", "Time for my nap.", "Is it walk time yet?", "I heard a squirrel. Permission to investigate?", "Fetching coffee... I mean, fetching intel.", "Was that a doorbell?", "Who's a good soldier? I am.", "Please stop petting my helmet, commander."]
+    },
+    "engineer": {
+      "select": ["Engineer ready.", "Tools sharpened, chew toys ready."],
+      "capture": ["Taking the building.", "This is my kennel now."],
+      "repair": ["Fixing it. Mostly with teeth."]
+    },
+    "attack_hound": {
+      "select": ["Grrr. Ready.", "Hound unit online.", "Woof. I mean, affirmative."],
+      "attack": ["Charging!", "Teeth deployed.", "Bark of war!"],
+      "annoyed": ["Who's a good boy? Me. Obviously.", "Belly rubs after the mission.", "I smell... victory. And bacon."]
+    }
+  },
+  "announcer": ["Base under attack.", "Unit lost.", "Power low.", "Construction complete.", "Training complete.", "Superweapon ready.", "Treat supplies low. Please resupply."]
+}
