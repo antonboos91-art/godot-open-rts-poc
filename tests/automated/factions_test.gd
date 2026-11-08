@@ -230,6 +230,44 @@ func _run():
 	crash.queue_free()
 	await _frames(3)
 
+	# Bären: Mechaniker repariert, Brummbär-Rakete
+	var wounded = _spawn_unit(me, "shibas/buggy", hq.global_position + Vector3(8, 0, 12))
+	await _frames(3)
+	wounded.hp = 1
+	var mechanic = _spawn_unit(me, "baeren/mechaniker", wounded.global_position + Vector3(0, 0, 4))
+	await _frames(3)
+	_check(mechanic.attack_domains.is_empty(), "mechanic cannot attack")
+	_match.send_command("unit", [mechanic], [_match.get_path_to(wounded)])
+	var repaired = await _wait_until(func(): return wounded.hp >= 3, 25.0)
+	_check(repaired, "mechanic repairs a damaged vehicle")
+	wounded.queue_free()
+	mechanic.queue_free()
+	sw = null
+	var rocket_power = _spawn_structure(
+		players[2], "baeren/power_big", enemy_hq.global_position + Vector3(0, 0, 14)
+	)
+	var rocket = _spawn_structure(
+		players[2],
+		"baeren/superweapon",
+		Vector3(0, 0, 0) + enemy_hq.global_position + Vector3(10, 0, 0)
+	)
+	await _frames(3)
+	var dummy = _spawn_unit(me, "shibas/tesla", Vector3(-20, 0, 20))
+	await _frames(3)
+	dummy.hp_max = 40
+	dummy.hp = 40
+	var rocket_hp = dummy.hp
+	rocket.charge_progress = 1.0
+	_match.send_command("superweapon", [rocket], [dummy.global_position])
+	await _frames(3)
+	_check(
+		not is_instance_valid(dummy) or dummy.hp == max(0, rocket_hp - 20),
+		"Brummbär-Rakete hits for 20"
+	)
+	rocket.queue_free()
+	rocket_power.queue_free()
+	await _frames(3)
+
 	# Strommangel: Produktion langsamer
 	_check(not me.is_low_power(), "power is fine before overload")
 	for i in range(3):
