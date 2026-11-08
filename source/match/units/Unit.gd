@@ -81,9 +81,21 @@ func _set_hp(value):
 	hp = max(0, value)
 	if old_hp != null and hp < old_hp:
 		MatchSignals.unit_damaged.emit(self)
+		_play_damage_sound()
 	hp_changed.emit()
 	if hp == 0:
 		_handle_unit_death()
+
+
+func _play_damage_sound():
+	if not is_inside_tree():
+		return
+	if hp == 0:
+		SoundEffects.play(
+			"explosion_big" if has_method("is_constructed") else "explosion", global_position
+		)
+	else:
+		SoundEffects.play("hit", global_position)
 
 
 func _set_hp_max(value):
