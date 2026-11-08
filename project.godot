@@ -28,6 +28,7 @@ MatchSignals="*res://source/match/MatchSignals.gd"
 Signals="*res://source/Signals.gd"
 Utils="*res://source/Utils.gd"
 TouchInput="*res://source/TouchInput.gd"
+SoundEffects="*res://source/SoundEffects.gd"
 
 [debug]
 
