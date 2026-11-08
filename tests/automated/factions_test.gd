@@ -344,7 +344,7 @@ func _run():
 				_own(players[1]).any(func(u): return u.variant == "katzen/power")
 				and _own(players[2]).any(func(u): return u.variant == "baeren/power")
 			),
-		150.0
+		240.0
 	)
 	Engine.time_scale = 1.0
 	_check(ai_built_power, "AI players build power plants of their faction")

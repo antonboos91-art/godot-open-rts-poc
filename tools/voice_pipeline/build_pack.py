@@ -7,10 +7,14 @@ SRC="out/concepts/voice"; DST="game/assets/voice/shibas"; GD="game/source/match/
 table={}
 for f in sorted(glob.glob(SRC+"/*/*.flac")):
     unit=os.path.basename(os.path.dirname(f)); base=os.path.basename(f)
-    m=re.match(r"([a-z_]+?)_(\d+)_(.+?)_\d+_?\.flac",base)
-    if not m: continue
-    cat,i,slug=m.groups()
-    if unit=="announcer": cat,i,slug="announcer",cat,i+"_"+slug if False else slug
+    if unit=="announcer":
+        m=re.match(r"\d+_(.+?)_\d+_?\.flac",base)
+        if not m: continue
+        cat,i=m.group(1),0
+    else:
+        m=re.match(r"([a-z_]+?)_(\d+)_(.+?)_\d+_?\.flac",base)
+        if not m: continue
+        cat,i,slug=m.groups()
     os.makedirs(f"{DST}/{unit}",exist_ok=True)
     out=f"{DST}/{unit}/{cat}_{i}.wav"; radio(f,out)
     table.setdefault(unit,{}).setdefault(cat,[]).append(out.replace("game/","res://"))

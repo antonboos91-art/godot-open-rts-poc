@@ -92,6 +92,25 @@ static func icon_for(variant, team_color = Color(0.85, 0.85, 0.85)):
 	var e = Factions.entry(variant)
 	if e.is_empty():
 		return null
+	var anim_path = anim_path_for(variant)
+	if anim_path != "":
+		var anim_sheet = load(anim_path).get_image()
+		if anim_sheet.is_compressed():
+			anim_sheet.decompress()
+		var side = anim_sheet.get_height()
+		var first = anim_sheet.get_region(Rect2i(0, 0, side, side))
+		first.convert(Image.FORMAT_RGBA8)
+		var used_rect = first.get_used_rect()
+		if used_rect.size.x > 0 and used_rect.size.y > 0:
+			var edge = max(used_rect.size.x, used_rect.size.y)
+			var squared = Image.create(edge, edge, false, Image.FORMAT_RGBA8)
+			squared.blit_rect(
+				first,
+				used_rect,
+				Vector2i((edge - used_rect.size.x) / 2, (edge - used_rect.size.y) / 2)
+			)
+			first = squared
+		return ImageTexture.create_from_image(first)
 	var type = e["archetype"].get_file().get_basename()
 	var path = sprite_path_for(variant, type)
 	if path == "":

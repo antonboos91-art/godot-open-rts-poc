@@ -5,7 +5,10 @@ from PIL import Image
 OUT="game/assets/sprites/units"; SIZE=160; FR=16
 UNITS={"shibas_trooper":("rifleman_salute","rifleman_scratch"),
        "shibas_zapper":("rocket_salute","rocket_scratch"),
-       "shibas_ingenieur":("engineer_salute","engineer_scratch")}
+       "shibas_ingenieur":("engineer_salute","engineer_scratch"),
+       "shibas_schnueffler":("sniffer_sniff","sniffer_scratch")}
+## Clips, die nicht zum Startbild zurueckkehren, laufen hin und zurueck (Ping-Pong)
+PINGPONG={"shibas_schnueffler"}
 def frames(a):
     d=f"out/concepts/cut/{a}"; fs={}
     for f in sorted(glob.glob(d+"/f*_*.png")): fs[os.path.basename(f)[:3]]=f   # letzte Version je Frame
@@ -18,7 +21,10 @@ for name,clips in UNITS.items():
     box=(cx-side//2,y1-side,cx-side//2+side,y1)     # unten buendig (Fuesse), quadratisch
     sheet=Image.new("RGBA",(SIZE*FR*2,SIZE),(0,0,0,0))
     for ci,c in enumerate(cl):
-        for i in range(FR):
-            im=c[min(i*2,len(c)-1)].crop(box).resize((SIZE,SIZE),Image.LANCZOS)
+        idx=[min(i*2,len(c)-1) for i in range(FR)]
+        if name in PINGPONG:
+            idx=list(range(0,32,4))+list(range(28,-1,-4))
+        for i,k in enumerate(idx):
+            im=c[min(k,len(c)-1)].crop(box).resize((SIZE,SIZE),Image.LANCZOS)
             sheet.paste(im,((ci*FR+i)*SIZE,0))
     sheet.save(f"{OUT}/{name}_anim.png"); print(name,sheet.size,box)

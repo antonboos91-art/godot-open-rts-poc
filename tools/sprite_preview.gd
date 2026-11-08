@@ -23,7 +23,7 @@ func _initialize():
 	get_root().add_child(root3d)
 	var cam = Camera3D.new()
 	root3d.add_child(cam)
-	cam.position = Vector3(0, 30, 24)
+	cam.position = Vector3(0, 34, 30)
 	cam.rotation_degrees = Vector3(-50, 0, 0)
 	var floor_mesh = MeshInstance3D.new()
 	var plane = PlaneMesh.new()
@@ -43,6 +43,10 @@ func _initialize():
 		["shibas/hq", "CommandCenter"], ["shibas/barracks", "Barracks"], ["shibas/factory", "VehicleFactory"],
 		["shibas/power", "PowerPlant"], ["shibas/refinery", "Refinery"], ["shibas/airfield", "AircraftFactory"],
 		["shibas/turret_ground", "AntiGroundTurret"],
+		["shibas/silo", "Facility"], ["shibas/radar", "Facility"], ["shibas/repair", "Facility"],
+		["shibas/lab", "Facility"], ["shibas/superweapon", "Facility"],
+		["shibas/schnueffler", "Infantry"], ["shibas/turret_air", "AntiAirTurret"],
+		["shibas/power_big", "PowerPlant"], ["shibas/gewitter", "Helicopter"], ["shibas/baumobil", "Tank"],
 	]
 	var i = 0
 	for it in items:
@@ -50,7 +54,7 @@ func _initialize():
 		u.variant = it[0]
 		u.type = it[1]
 		root3d.add_child(u)
-		u.position = Vector3(-18 + (i % 5) * 9, 0, -9 + (i / 5) * 9)
+		u.position = Vector3(-22 + (i % 6) * 9, 0, -14 + (i / 6) * 9)
 		PixelSprite.try_attach(u)
 		var s = u.get_node("PixelSprite")
 		s._clip = 0
