@@ -241,6 +241,8 @@ func setup_animated(unit, texture):
 	if unit.type in ANIM_BUILDING_TYPES:
 		world_size *= BUILDING_SCALE
 	var is_building = unit.type in ANIM_BUILDING_TYPES
+	if is_building:
+		load("res://source/match/units/traits/StructureFX.gd").attach(unit, world_size * 0.28)
 	var quad = QuadMesh.new()
 	quad.size = Vector2(world_size, world_size)
 	quad.center_offset = Vector3(0, world_size * (0.38 if is_building else 0.5), 0)

@@ -41,6 +41,10 @@ void fragment() {
 			float filled = step(1.0 - UV.y, construction);
 			vec3 holo = vec3(0.2, 0.9, 1.0) * dot(c.rgb, vec3(0.33)) * 1.6;
 			ALBEDO = mix(holo, c.rgb, filled);
+			// leuchtende Scanlinie an der Baukante plus feine Hologramm-Zeilen
+			float edge = 1.0 - smoothstep(0.0, 0.035, abs((1.0 - UV.y) - construction));
+			ALBEDO += vec3(0.4, 0.9, 1.0) * edge * 1.5;
+			ALBEDO *= 0.9 + 0.1 * sin(UV.y * 220.0 + TIME * 6.0) * (1.0 - filled);
 		}
 	}
 }
