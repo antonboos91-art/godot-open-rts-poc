@@ -103,7 +103,11 @@ func _run():
 		),
 		"factions without own sprites fall back to the archetype sprite"
 	)
-	_check(trooper.find_child("PixelSprite", false, false) != null, "units show a pixel sprite")
+	_check(
+		trooper.find_child("PixelSprite", false, false) != null
+		or trooper.find_child("SpriteInfantry", false, false) != null,
+		"units show a pixel sprite"
+	)
 
 	# Raffinerie: Rohstoff-Abgabe und ein Sammler gratis
 	var collectors_before = _own(me).filter(func(u): return u.variant == "shibas/sammler").size()

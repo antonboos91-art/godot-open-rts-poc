@@ -182,6 +182,9 @@ static func icon_for(variant, team_color = Color(0.85, 0.85, 0.85)):
 
 
 static func try_attach(unit):
+	var infantry = load("res://source/match/units/traits/SpriteInfantry.gd").try_attach(unit)
+	if infantry != null:
+		return infantry
 	var vehicle = load("res://source/match/units/traits/SpriteVehicle.gd").try_attach(unit)
 	if vehicle != null:
 		return vehicle
