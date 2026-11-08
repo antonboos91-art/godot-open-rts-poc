@@ -511,6 +511,30 @@ def katzen():
         sheet("katzen_" + key, parts, size, baseline)
 
 
+BAEREN_UNITS = {
+    "mechaniker": INFANTRY
+    + [
+        box(0, 0, 6, 6, 11, 1, HAZARD),
+        box(4, 4, 1, 6, 6, 1, STEEL),
+        box(0, -2, 6, 3, 5, 4, TEAM),
+    ],
+    "superweapon": [
+        box(0, 0, 40, 36, 0, 3, CONCRETE),
+        box(0, 0, 26, 26, 3, 6, STEEL_DARK),
+        cyl(0, 0, 9, 9, 18, RUST, segments=12),  # Raketensilo
+        cyl(0, 0, 6, 27, 3, HAZARD, segments=12),
+        box(0, 0, 4, 4, 30, 6, TEAM),
+    ],
+}
+BAEREN_SHEETS = {"mechaniker": (32, 24), "superweapon": (64, 44)}
+
+
+def baeren():
+    for key, parts in BAEREN_UNITS.items():
+        size, baseline = BAEREN_SHEETS[key]
+        sheet("baeren_" + key, parts, size, baseline)
+
+
 if __name__ == "__main__":
     sheet("Infantry", INFANTRY, 32, 24)
     sheet("Barracks", BARRACKS, 64, 44)
@@ -528,3 +552,4 @@ if __name__ == "__main__":
     sheet("AntiAirTurret", AA_TURRET, 32, 22)
     shibas()
     katzen()
+    baeren()

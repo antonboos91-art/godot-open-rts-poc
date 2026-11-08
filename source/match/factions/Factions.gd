@@ -135,7 +135,17 @@ const STRUCTURES = {
 		["lab", "Tatzen-Werk", "facility", 9, 3, -12, ["radar"], 14, {}],
 		["turret_ground", "Bunker-Kanone", "turret_ground", 4, 0, -5, ["barracks"], 14, {}],
 		["turret_air", "Flak-Grizzly", "turret_air", 4, 1, -5, ["radar"], 10, {}],
-		["superweapon", "Brummbär-Rakete", "facility", 12, 6, -20, ["lab"], 16, {"later": true}],
+		[
+			"superweapon",
+			"Brummbär-Rakete",
+			"facility",
+			12,
+			6,
+			-20,
+			["lab"],
+			16,
+			{"ability": "superweapon", "strike": {"radius": 8.0, "damage": 20, "charge": 120.0}}
+		],
 	],
 }
 
@@ -529,7 +539,18 @@ const UNITS = {
 			},
 			{}
 		],
-		["mechaniker", "Mechaniker", "infantry", 2, 0, 4.0, "barracks", [], {}, {"later": true}],
+		[
+			"mechaniker",
+			"Mechaniker",
+			"infantry",
+			2,
+			0,
+			4.0,
+			"barracks",
+			[],
+			{"attack_domains": "none"},
+			{"ability": "repair"}
+		],
 		["kipper", "Schrott-Kipper", "worker", 4, 0, 4.0, "hq", [], {"hp": 10}, {"ai": true}],
 		[
 			"rammbock",
