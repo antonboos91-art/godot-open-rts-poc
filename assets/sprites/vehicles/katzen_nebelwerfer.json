@@ -1,0 +1,14 @@
+{
+ "columns": 64,
+ "rows": 4,
+ "ortho": 3.6,
+ "scale": 0.8,
+ "target_z": 0.45,
+ "track_pitch": 0.06,
+ "muzzle_z": 0.98,
+ "muzzle_dist": 0.45,
+ "recoil": 0.06,
+ "mirror": true,
+ "weapon": "rockets",
+ "muzzle_side": 0.27
+}

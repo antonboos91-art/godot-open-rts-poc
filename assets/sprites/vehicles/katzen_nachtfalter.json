@@ -1,0 +1,17 @@
+{
+ "columns": 64,
+ "rows": 4,
+ "ortho": 3.6,
+ "scale": 0.8,
+ "target_z": 0.45,
+ "track_pitch": 0.06,
+ "muzzle_z": 0.31,
+ "muzzle_dist": 0.5,
+ "recoil": 0.18,
+ "mirror": true,
+ "turret": false,
+ "weapon": "mg",
+ "anim": "always",
+ "air": true,
+ "engine": "rotor"
+}
