@@ -19,7 +19,11 @@ var _state = State.FORMING
 var _attached_units = []
 
 
-func _init(expected_number_of_units, players_to_attack):
+var _not_before_ms = 0
+
+
+func _init(expected_number_of_units, players_to_attack, attack_delay_s = 0.0):
+	_not_before_ms = Time.get_ticks_msec() + int(attack_delay_s * 1000.0)
 	_expected_number_of_units = expected_number_of_units
 	_players_to_attack = players_to_attack
 	_player_to_attack = _players_to_attack.front()
@@ -39,6 +43,12 @@ func attach_unit(unit):
 
 func _start_attacking():
 	_state = State.ATTACKING
+	var wait_ms = _not_before_ms - Time.get_ticks_msec()
+	if wait_ms > 0:
+		# Gruppe wartet fertig formiert, bis die Schwierigkeit den Angriff erlaubt
+		await get_tree().create_timer(wait_ms / 1000.0).timeout
+		if not is_inside_tree():
+			return
 	_attack_next_adversary_unit()
 
 

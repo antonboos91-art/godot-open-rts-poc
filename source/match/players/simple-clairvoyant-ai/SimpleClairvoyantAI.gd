@@ -20,6 +20,16 @@ const AbilityController = preload(
 @export var expected_number_of_battlegroups = 2
 @export var expected_number_of_units_in_battlegroup = 4
 
+## Je Schwierigkeit (0 Leicht, 1 Normal, 2 Schwer): fruehester Angriff in Sekunden,
+## Anzahl Kampfgruppen und Einheiten je Gruppe.
+const DIFFICULTY_SETTINGS = [
+	{"attack_delay_s": 720.0, "battlegroups": 1, "units": 3},
+	{"attack_delay_s": 480.0, "battlegroups": 2, "units": 4},
+	{"attack_delay_s": 300.0, "battlegroups": 3, "units": 5},
+]
+
+var attack_delay_s = 480.0
+
 var _provisioning_ongoing = false
 var _resource_requests = {
 	ResourceRequestPriority.LOW: [],
@@ -41,6 +51,10 @@ var _tech_controller = TechController.new()
 
 
 func _ready():
+	var difficulty_settings = DIFFICULTY_SETTINGS[clampi(difficulty, 0, 2)]
+	attack_delay_s = difficulty_settings["attack_delay_s"]
+	expected_number_of_battlegroups = difficulty_settings["battlegroups"]
+	expected_number_of_units_in_battlegroup = difficulty_settings["units"]
 	# wait for match to be ready
 	if not _match.is_node_ready():
 		await _match.ready

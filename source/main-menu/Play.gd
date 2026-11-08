@@ -7,6 +7,7 @@ const Factions = preload("res://source/match/factions/Factions.gd")
 
 var _map_paths = []
 var _faction_option = FactionOption.new()
+var _difficulty_option = OptionButton.new()
 
 @onready var _start_button = find_child("StartButton")
 @onready var _map_list = find_child("MapList")
@@ -31,6 +32,16 @@ func _setup_faction_option():
 	row.add_child(_faction_option)
 	# unter die Spielerliste, damit das Fenster nicht höher wird
 	find_child("GridContainer").get_parent().add_child(row)
+	var difficulty_row = HBoxContainer.new()
+	var difficulty_label = Label.new()
+	difficulty_label.text = "KI-Schwierigkeit:"
+	difficulty_row.add_child(difficulty_label)
+	_difficulty_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for entry in ["Leicht", "Normal", "Schwer"]:
+		_difficulty_option.add_item(entry)
+	_difficulty_option.select(1)
+	difficulty_row.add_child(_difficulty_option)
+	find_child("GridContainer").get_parent().add_child(difficulty_row)
 
 
 func _setup_map_list():
@@ -55,6 +66,7 @@ func _create_match_settings():
 			player_settings.controller = player_controller
 			player_settings.color = Constants.Player.COLORS[option_node_id]
 			player_settings.spawn_index_offset = spawn_index_offset
+			player_settings.difficulty = _difficulty_option.selected
 			player_settings.faction = (
 				_faction_option.get_faction()
 				if player_controller == Constants.PlayerType.HUMAN

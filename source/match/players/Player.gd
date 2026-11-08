@@ -21,6 +21,9 @@ var team = 0
 ## Volk, z. B. "shibas" (leer = Grundvolk ohne Stromnetz). Siehe Factions.gd
 var faction = ""
 
+## KI-Schwierigkeit: 0 = Leicht, 1 = Normal, 2 = Schwer (nur für KI-Spieler relevant)
+var difficulty = 1
+
 ## Multiplayer-Peer, der diesen Spieler steuert (0 = KI bzw. lokal im Einzelspieler).
 var peer_id = 0
 

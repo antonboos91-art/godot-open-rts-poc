@@ -121,7 +121,7 @@ func _try_creating_new_battlegroup():
 	)
 	adversary_players.shuffle()
 	var battlegroup = AutoAttackingBattlegroup.new(
-		_ai.expected_number_of_units_in_battlegroup, adversary_players
+		_ai.expected_number_of_units_in_battlegroup, adversary_players, _ai.attack_delay_s
 	)
 	_battlegroups.append(battlegroup)
 	battlegroup.tree_exited.connect(_on_battlegroup_died.bind(battlegroup))

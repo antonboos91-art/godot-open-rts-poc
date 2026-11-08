@@ -386,6 +386,7 @@ func _create_players_from_settings():
 		player.peer_id = player_settings.peer_id
 		player.team = player_settings.team
 		player.faction = player_settings.faction
+		player.difficulty = player_settings.difficulty
 		# Gleiche Namen auf allen Rechnern, damit RPCs und Sync die Knoten finden
 		player.name = "Player%d" % player_id
 		if player_settings.spawn_index_offset > 0:
