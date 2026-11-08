@@ -4,6 +4,9 @@ const ROTOR_SPEED = 800.0  # degrees/s
 
 const WaitingForTargets = preload("res://source/match/units/actions/WaitingForTargets.gd")
 
+var cargo = []  # Transportierte Infanterie (nur Host): [{scene, variant, hp}]
+var cargo_count = 0  # wird repliziert, für die Anzeige
+
 
 func _ready():
 	await super()

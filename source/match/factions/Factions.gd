@@ -656,7 +656,18 @@ const UNITS = {
 			},
 			{"ai": true}
 		],
-		["flugkessel", "Flugkessel", "heli", 4, 1, 6.0, "airfield", [], {}, {"later": true}],
+		[
+			"flugkessel",
+			"Flugkessel",
+			"heli",
+			4,
+			1,
+			6.0,
+			"airfield",
+			[],
+			{"attack_domains": "none", "hp": 8},
+			{"ability": "transport"}
+		],
 	],
 }
 
@@ -795,7 +806,7 @@ static func blast(variant):
 	return entry(variant).get("blast", {})
 
 
-## Fähigkeit einer Variante: "capture", "deploy", "superweapon", "radar", "repair" oder "".
+## Fähigkeit einer Variante: "capture", "deploy", "transport", "superweapon", "radar", ... oder "".
 static func ability(variant):
 	return entry(variant).get("ability", "")
 

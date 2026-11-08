@@ -55,6 +55,8 @@ func _init():
 	var replicated_properties = [":variant", ":position", ":rotation", ":hp", ":hp_max"]
 	if "_construction_progress" in self:
 		replicated_properties.append(":_construction_progress")
+	if "cargo_count" in self:
+		replicated_properties.append(":cargo_count")
 	if "charge_progress" in self:
 		replicated_properties.append(":charge_progress")
 	var synchronizer = MultiplayerSynchronizer.new()

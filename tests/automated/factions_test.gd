@@ -270,6 +270,34 @@ func _run():
 		dummy.queue_free()
 	await _frames(3)
 
+	# Flugkessel: Infanterie steigt ein und wird wieder abgesetzt
+	var kessel = _spawn_unit(me, "baeren/flugkessel", hq.global_position + Vector3(14, 0, 12))
+	var soldiers = []
+	for i in range(2):
+		soldiers.append(
+			_spawn_unit(me, "shibas/trooper", kessel.global_position + Vector3(3 + i, 0, 4))
+		)
+	await _frames(3)
+	_check(kessel.cargo_count == 0, "transport starts empty")
+	_match.send_command("unit", soldiers, [_match.get_path_to(kessel)])
+	var loaded = await _wait_until(func(): return kessel.cargo_count == 2, 25.0)
+	_check(loaded, "infantry boards the Flugkessel")
+	await _frames(3)
+	_check(not is_instance_valid(soldiers[0]), "boarded infantry leaves the field")
+	var infantry_before = _own(me).filter(func(u): return u.variant == "shibas/trooper").size()
+	_match.send_command("unload", [kessel])
+	await _frames(5)
+	_check(kessel.cargo_count == 0, "unloading empties the cargo")
+	_check(
+		(
+			_own(me).filter(func(u): return u.variant == "shibas/trooper").size()
+			== infantry_before + 2
+		),
+		"unloaded infantry is back on the field"
+	)
+	kessel.queue_free()
+	await _frames(3)
+
 	# Bären-Kraftwerke explodieren und beschädigen Nachbarn
 	var boom_power = _spawn_structure(players[2], "baeren/power_big", Vector3(-20, 0, 20))
 	var neighbour = _spawn_unit(me, "shibas/tesla", Vector3(-20, 0, 22))

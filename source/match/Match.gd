@@ -119,6 +119,9 @@ func _execute_command(player, kind, units, args):
 		"deploy":
 			for unit in units:
 				_deploy(player, unit)
+		"unload":
+			for unit in units:
+				_unload_transport(unit)
 		"superweapon":
 			if not args[0] is Vector3:
 				return
@@ -168,6 +171,37 @@ func _deploy(_player, unit):
 	hq.variant = hq_variant
 	_setup_and_spawn_unit(hq, Transform3D(Basis(), unit.global_position), unit.player, false)
 	unit._handle_unit_death()
+
+
+## Infanterie steigt ein: Die Einheit wird entfernt und im Transporter gespeichert.
+func board_transport(unit, transport):
+	if Network.is_client() or transport.cargo_count >= Constants.Match.Units.CARGO_CAPACITY:
+		return
+	transport.cargo.append({"scene": unit.scene_file_path, "variant": unit.variant, "hp": unit.hp})
+	transport.cargo_count = transport.cargo.size()
+	unit.queue_free()
+
+
+## Der Transporter setzt alle Passagiere im Kreis um sich ab.
+func _unload_transport(transport):
+	if Network.is_client() or not "cargo" in transport or transport.cargo.is_empty():
+		return
+	var count = transport.cargo.size()
+	for i in range(count):
+		var entry = transport.cargo[i]
+		var unit = load(entry["scene"]).instantiate()
+		unit.variant = entry["variant"]
+		var angle = TAU * i / count
+		var offset = Vector3(cos(angle), 0, sin(angle)) * 2.5
+		_setup_and_spawn_unit(
+			unit,
+			Transform3D(Basis(), transport.global_position * Vector3(1, 0, 1) + offset),
+			transport.player,
+			false
+		)
+		unit.hp = entry["hp"]
+	transport.cargo.clear()
+	transport.cargo_count = 0
 
 
 ## Ein Ingenieur übernimmt ein Gebäude: Es wird für den neuen Besitzer neu erzeugt
