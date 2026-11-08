@@ -2,19 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://s3v7fibsi3pq"
-path="res://.godot/imported/hull_Image_1.png-bc169c372fa60563b6bbec719917a96f.ctex"
+uid="uid://b7ukju065lc7k"
+path="res://.godot/imported/shibas_tesla_turret.png-ee650320d91e8531514fdca383efe38b.ctex"
 metadata={
 "vram_texture": false
-}
-generator_parameters={
-"md5": "6eb9ec90f27707cf0980f0729e48f54b"
 }
 
 [deps]
 
-source_file="res://assets/models/factions/shibas_tesla/hull_Image_1.png"
-dest_files=["res://.godot/imported/hull_Image_1.png-bc169c372fa60563b6bbec719917a96f.ctex"]
+source_file="res://assets/sprites/vehicles/shibas_tesla_turret.png"
+dest_files=["res://.godot/imported/shibas_tesla_turret.png-ee650320d91e8531514fdca383efe38b.ctex"]
 
 [params]
 
@@ -24,7 +21,7 @@ compress/lossy_quality=0.7
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

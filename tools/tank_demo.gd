@@ -60,7 +60,7 @@ func _run():
 	if cam != null:
 		cam.set_size_safely(9.0)
 		cam.set_position_safely(base + Vector3(4.5, 0, -1))
-	print("DEMO tank visual: ", tank.find_child("TankVisual", false, false) != null)
+	print("DEMO tank visual: ", tank.find_child("SpriteVehicle", false, false) != null)
 	print("DEMO target hp: ", target.hp, "/", target.hp_max)
 	await _frames(20)
 	_shot("00_start")
