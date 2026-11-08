@@ -266,6 +266,8 @@ func _run():
 	)
 	rocket.queue_free()
 	rocket_power.queue_free()
+	if is_instance_valid(dummy):
+		dummy.queue_free()
 	await _frames(3)
 
 	# Flugkessel: Infanterie steigt ein und wird wieder abgesetzt
@@ -306,6 +308,21 @@ func _run():
 	_check(neighbour.hp == neighbour_hp - 8, "destroyed Reaktor-Kessel damages units nearby")
 	neighbour.queue_free()
 	await _frames(3)
+
+	# KI-Mechaniker repariert selbstständig
+	var ai_player = players[2]
+	var ai_hq = _own(ai_player).filter(func(u): return u.variant == "baeren/hq")
+	if not ai_hq.is_empty():
+		var ai_tank = _spawn_unit(ai_player, "baeren/moerser", Vector3(-20, 0, 20))
+		await _frames(3)
+		ai_tank.hp = 1
+		_spawn_unit(ai_player, "baeren/mechaniker", Vector3(-20, 0, 23))
+		var ai_repaired = await _wait_until(
+			func(): return is_instance_valid(ai_tank) and ai_tank.hp >= 3, 40.0
+		)
+		_check(ai_repaired, "AI mechanic repairs damaged units by itself")
+		if is_instance_valid(ai_tank):
+			ai_tank.queue_free()
 
 	# Strommangel: Produktion langsamer
 	_check(not me.is_low_power(), "power is fine before overload")

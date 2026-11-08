@@ -1,5 +1,5 @@
 ## Lässt die KI die Spezialfähigkeiten ihres Volks nutzen: Spezialeinheiten ab und zu
-## bauen, Gebäude übernehmen/hacken/sprengen, reparieren und Superwaffen abfeuern.
+## bauen, Gebäude übernehmen/hacken/sprengen, reparieren, entfalten und Superwaffen abfeuern.
 extends Node
 
 const Factions = preload("res://source/match/factions/Factions.gd")
@@ -42,6 +42,20 @@ func _enemy_structures():
 
 func _is_idle(unit):
 	return unit.action == null or (unit.action.has_method("is_idle") and unit.action.is_idle())
+
+
+func _closest(unit, candidates):
+	var best = null
+	for candidate in candidates:
+		if (
+			best == null
+			or (
+				candidate.global_position_yless.distance_to(unit.global_position_yless)
+				< best.global_position_yless.distance_to(unit.global_position_yless)
+			)
+		):
+			best = candidate
+	return best
 
 
 func _on_refresh():
@@ -93,25 +107,17 @@ func _deploy_if_no_hq(mcv, own):
 
 
 func _infiltrate(unit):
-	var targets = _enemy_structures()
-	if targets.is_empty():
-		return
-	var closest = targets[0]
-	for target in targets:
-		if (
-			target.global_position_yless.distance_to(unit.global_position_yless)
-			< closest.global_position_yless.distance_to(unit.global_position_yless)
-		):
-			closest = target
-	if Capturing.is_applicable(unit, closest):
-		unit.action = Capturing.new(closest)
+	var target = _closest(unit, _enemy_structures())
+	if target != null and Capturing.is_applicable(unit, target):
+		unit.action = Capturing.new(target)
 
 
 func _repair(mechanic, own):
-	for target in own:
-		if Repairing.is_applicable(mechanic, target):
-			mechanic.action = Repairing.new(target)
-			return
+	var target = _closest(
+		mechanic, own.filter(func(t): return Repairing.is_applicable(mechanic, t))
+	)
+	if target != null:
+		mechanic.action = Repairing.new(target)
 
 
 ## Alle paar Minuten eine Spezialeinheit des Volks in Auftrag geben.
