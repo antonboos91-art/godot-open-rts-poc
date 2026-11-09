@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cr7k6icjiuata"
-path="res://.godot/imported/shibas_ingenieur_Image_0_6.jpg-0d3198fc1b8273e45bb6138ce5234a23.ctex"
+uid="uid://dj1npamx6xbt"
+path="res://.godot/imported/shibas_zapper_Image_0_5.jpg-7612fb21f6a8d12ceed80fbadc7ec11e.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "2ff56947cc9cea40b5ff72727dc6f982"
+"md5": "45c7ef3fc6b87178a725ebe038719e8f"
 }
 
 [deps]
 
-source_file="res://assets/models/infantry/shibas_ingenieur_Image_0_6.jpg"
-dest_files=["res://.godot/imported/shibas_ingenieur_Image_0_6.jpg-0d3198fc1b8273e45bb6138ce5234a23.ctex"]
+source_file="res://assets/models/infantry/shibas_zapper_Image_0_5.jpg"
+dest_files=["res://.godot/imported/shibas_zapper_Image_0_5.jpg-7612fb21f6a8d12ceed80fbadc7ec11e.ctex"]
 
 [params]
 

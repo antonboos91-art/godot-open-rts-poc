@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cg2ebhaertpa"
-path="res://.godot/imported/katzen_panther_CarrotTexture.jpg-8b6ad47640239f566dca6d76ac6b8b21.ctex"
+uid="uid://b4ijrcy4kjtun"
+path="res://.godot/imported/katzen_panther_Image_0_3.jpg-b6a15d5849cb935d0cc23af7f5fe198f.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "a1e70a777e538a0c3bc8622f7a561763"
+"md5": "02bf709be67f81fdaa59d7f0bb325391"
 }
 
 [deps]
 
-source_file="res://assets/models/infantry/katzen_panther_CarrotTexture.jpg"
-dest_files=["res://.godot/imported/katzen_panther_CarrotTexture.jpg-8b6ad47640239f566dca6d76ac6b8b21.ctex"]
+source_file="res://assets/models/infantry/katzen_panther_Image_0_3.jpg"
+dest_files=["res://.godot/imported/katzen_panther_Image_0_3.jpg-b6a15d5849cb935d0cc23af7f5fe198f.ctex"]
 
 [params]
 

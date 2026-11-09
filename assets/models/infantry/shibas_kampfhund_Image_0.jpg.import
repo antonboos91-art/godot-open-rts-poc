@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b8b72jf1lse0n"
-path="res://.godot/imported/shibas_kampfhund_Dog.jpg-317ae3afc51f5dd1bd273ba360b8f94c.ctex"
+uid="uid://ger0n2dq6np8"
+path="res://.godot/imported/shibas_kampfhund_Image_0.jpg-93de22c1ce62c2d50ab7afae0c927ca7.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "cd48e69b5592fd55df2c35df62125e31"
+"md5": "6c0c589b7531bef1d0a87698d90bd015"
 }
 
 [deps]
 
-source_file="res://assets/models/infantry/shibas_kampfhund_Dog.jpg"
-dest_files=["res://.godot/imported/shibas_kampfhund_Dog.jpg-317ae3afc51f5dd1bd273ba360b8f94c.ctex"]
+source_file="res://assets/models/infantry/shibas_kampfhund_Image_0.jpg"
+dest_files=["res://.godot/imported/shibas_kampfhund_Image_0.jpg-93de22c1ce62c2d50ab7afae0c927ca7.ctex"]
 
 [params]
 

@@ -11,7 +11,15 @@ argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 opt = {"--parts": "", "--out": "out/mod/mx", "--size": "192", "--pal": "shibas", "--weapon": "AK", "--weapon-len": "0.95",
        "--head-size": "0.42", "--head-rot": "0", "--chest-h": "0.62", "--chest-z": "1.42", "--chest-w": "0.66",
        "--shoulder-size": "0.40", "--shoulder-lift": "0.02", "--wgrip": "0.25", "--wflip": "0", "--wrot": "0,0,0", "--wup": "0.0",
-       "--root": "C:/Users/anton/Desktop/RTS/assets/animations", "--build": "1.0", "--yaw": "45", "--bw": "1.0", "--bh": "1.0", "--notint": "0", "--core-k": "1.0", "--glow": "", "--plate": "", "--gain": "1.0", "--export-glb": ""}
+       "--root": "C:/Users/anton/Desktop/RTS/assets/animations", "--build": "1.0", "--yaw": "45", "--bw": "1.0", "--bh": "1.0",
+       "--notint": "0", "--core-k": "1.0", "--glow": "", "--plate": "", "--gain": "1.0", "--export-glb": "",
+       "--muscle": "0.0", "--gear": "",
+       "--clip-idle": "basic_shooter_pack/rifle aiming idle.fbx",
+       "--clip-walk": "basic_shooter_pack/rifle run.fbx",
+       "--clip-shoot": "basic_shooter_pack/firing rifle.fbx",
+       "--clip-die": "mixamo/death_rifle_back.fbx",
+       "--clip-a": "basic_shooter_pack/reloading.fbx",
+       "--clip-b": "mixamo/idle_military_salute.fbx"}
 for i, v in enumerate(argv):
     if v in opt and i + 1 < len(argv):
         opt[v] = argv[i + 1]
@@ -35,13 +43,14 @@ if opt["--glow"]:
 if opt["--plate"]:
     PAL = (PAL[0], _rgba(opt["--plate"]), PAL[2], PAL[3])
 
+REF_RIFLE_IDLE = "basic_shooter_pack/rifle aiming idle.fbx"
 # Clip -> (Datei relativ zu --root, Frames im Sheet, Schleife)
-CLIPS = {"idle": ("basic_shooter_pack/rifle aiming idle.fbx", 1, True),
-         "walk": ("basic_shooter_pack/rifle run.fbx", 8, True),
-         "shoot": ("basic_shooter_pack/firing rifle.fbx", 5, False),
-         "die": ("mixamo/death_rifle_back.fbx", 8, False),
-         "idle_a": ("basic_shooter_pack/reloading.fbx", 10, False),
-         "idle_b": ("mixamo/idle_military_salute.fbx", 10, False)}
+CLIPS = {"idle": (opt["--clip-idle"], 1, True),
+         "walk": (opt["--clip-walk"], 8, True),
+         "shoot": (opt["--clip-shoot"], 5, False),
+         "die": (opt["--clip-die"], 8, False),
+         "idle_a": (opt["--clip-a"], 10, False),
+         "idle_b": (opt["--clip-b"], 10, False)}
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.fbx(filepath=f"{ROOT}/basic_shooter_pack/X Bot.fbx")
@@ -52,9 +61,20 @@ rig.animation_data_create()
 bones = rig.data.bones
 # X-Bot ist Z-hoch, schaut nach -Y (wie der Quaternius-Koerper)
 
+# Muskel-/Masse-Aufbau fuer kräftige Einheiten (z.B. Baeren: dicke Schenkel, Waden, Arme, Rumpf)
+muscle_cm = float(opt["--muscle"])
+if muscle_cm != 0.0:
+    for m_obj in (body, joints):
+        for v in m_obj.data.vertices:
+            wv = m_obj.matrix_world @ v.co
+            leg_boost = 1.45 if wv.z < 1.05 else 1.0
+            v.co = v.co + v.normal * (muscle_cm * leg_boost)
+        m_obj.data.update()
+
 # ---------- Animationen laden ----------
 ACT = {}
-for clip, (path, _, _) in CLIPS.items():
+all_paths = [REF_RIFLE_IDLE] + [p for (p, _, _) in CLIPS.values()]
+for path in all_paths:
     if path in ACT:
         continue
     before_o = set(bpy.context.scene.objects)
@@ -509,19 +529,145 @@ for side, sign, mxs in (("L", 1, "Left"), ("R", -1, "Right")):
         fa = import_part(PARTS["a_forearm"])
         tint_dark_silver(fa)
         align_to_bone(fa, mxs + "ForeArm", 0.25, 0.5)
+    if "a_thigh" in PARTS:
+        th = import_part(PARTS["a_thigh"])
+        tint_dark_silver(th)
+        align_to_bone(th, mxs + "UpLeg", 0.36, 0.48)
     if "a_shin" in PARTS:
         sh = import_part(PARTS["a_shin"])
         tint_dark_silver(sh)
         align_to_bone(sh, mxs + "Leg", 0.42, 0.42)
 
+# ---------- Spezielle Ruecken-Ausrüstung, Visiere & Handwerkzeuge (Rest-Pose) ----------
+m_gear_plate = flat_mat("gear_plate", PAL[1], rough=0.42, metal=0.25)
+m_gear_dark = flat_mat("gear_dark", (0.09, 0.10, 0.12, 1), rough=0.50, metal=0.25)
+m_gear_glow = flat_mat("gear_glow", PAL[2], rough=0.20, metal=0.0)
+pb_gg = m_gear_glow.node_tree.nodes["Principled BSDF"]
+pb_gg.inputs["Emission Color"].default_value = PAL[2]
+pb_gg.inputs["Emission Strength"].default_value = 3.5
+
+
+def _prim_box(loc, scl, mat, bone_name, rot=(0, 0, 0)):
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=loc)
+    o = bpy.context.active_object
+    o.scale = scl
+    o.rotation_euler = Euler([math.radians(x) for x in rot], "XYZ")
+    o.data.materials.append(mat)
+    attach(o, bone_name)
+    return o
+
+
+def _prim_cyl(loc, rad, dep, mat, bone_name, rot=(0, 0, 0)):
+    bpy.ops.mesh.primitive_cylinder_add(vertices=14, radius=rad, depth=dep, location=loc)
+    o = bpy.context.active_object
+    o.rotation_euler = Euler([math.radians(x) for x in rot], "XYZ")
+    o.data.materials.append(mat)
+    attach(o, bone_name)
+    return o
+
+
+gear = opt["--gear"]
+if gear == "pack_radio":
+    _prim_box((0.0, 0.19, 1.38), (0.24, 0.12, 0.28), m_gear_plate, "Spine2")
+    _prim_box((0.0, 0.255, 1.38), (0.14, 0.02, 0.16), m_gear_glow, "Spine2")
+    _prim_cyl((0.09, 0.20, 1.62), 0.012, 0.36, m_gear_dark, "Spine2")
+    _prim_cyl((0.09, 0.20, 1.81), 0.022, 0.05, m_gear_glow, "Spine2")
+elif gear == "tesla_pack":
+    _prim_box((0.0, 0.20, 1.36), (0.34, 0.15, 0.30), m_gear_dark, "Spine2")
+    for sx in (-0.13, 0.13):
+        _prim_cyl((sx, 0.23, 1.48), 0.062, 0.42, m_gear_plate, "Spine2")
+        for zz in (1.35, 1.48, 1.61):
+            _prim_cyl((sx, 0.23, zz), 0.080, 0.036, m_gear_glow, "Spine2")
+        _prim_cyl((sx, 0.23, 1.72), 0.045, 0.06, m_gear_glow, "Spine2")
+elif gear == "scout_pack":
+    _prim_box((0.0, 0.17, 1.38), (0.22, 0.10, 0.24), m_gear_plate, "Spine2")
+    _prim_box((0.0, 0.225, 1.38), (0.12, 0.02, 0.14), m_gear_glow, "Spine2")
+    for sx, ang in ((-0.09, -24), (0.09, 24)):
+        _prim_cyl((sx, 0.21, 1.60), 0.012, 0.38, m_gear_dark, "Spine2", (0, ang, 0))
+        _prim_Box_t = _prim_box((sx * 1.6, 0.21, 1.77), (0.04, 0.04, 0.08), m_gear_glow, "Spine2", (0, ang, 0))
+    _prim_box((0.0, -0.175, 1.725), (0.24, 0.06, 0.055), m_gear_glow, "Head")
+elif gear == "engi_pack":
+    _prim_box((0.0, 0.20, 1.38), (0.30, 0.16, 0.32), m_gear_plate, "Spine2")
+    _prim_box((0.0, 0.285, 1.40), (0.20, 0.02, 0.16), m_gear_glow, "Spine2")
+    _prim_cyl((-0.11, 0.22, 1.62), 0.025, 0.26, m_gear_dark, "Spine2")
+    _prim_cyl((-0.11, 0.22, 1.76), 0.045, 0.07, m_gear_glow, "Spine2")
+    _prim_box((0.0, -0.175, 1.73), (0.25, 0.06, 0.06), m_gear_glow, "Head")
+elif gear == "katzen_fins":
+    for sx, ang in ((-0.13, -20), (0.13, 20)):
+        _prim_box((sx, 0.22, 1.44), (0.035, 0.18, 0.38), m_gear_plate, "Spine2", (15, ang, 0))
+        _prim_box((sx * 1.12, 0.27, 1.45), (0.02, 0.05, 0.36), m_gear_glow, "Spine2", (15, ang, 0))
+elif gear == "sniper_pack":
+    _prim_box((0.0, 0.18, 1.38), (0.18, 0.11, 0.30), m_gear_plate, "Spine2")
+    _prim_cyl((0.09, 0.20, 1.64), 0.015, 0.38, m_gear_glow, "Spine2")
+    _prim_box((0.0, -0.175, 1.725), (0.24, 0.06, 0.05), m_gear_glow, "Head")
+elif gear == "hacker_pack":
+    _prim_box((0.0, 0.19, 1.38), (0.26, 0.13, 0.28), m_gear_plate, "Spine2")
+    _prim_box((0.0, 0.26, 1.38), (0.18, 0.02, 0.20), m_gear_glow, "Spine2")
+    for sx, ang in ((-0.11, -28), (0.0, 0), (0.11, 28)):
+        _prim_cyl((sx, 0.22, 1.62), 0.016, 0.36, m_gear_glow, "Spine2", (0, ang, 0))
+    _prim_box((0.0, -0.175, 1.725), (0.24, 0.06, 0.055), m_gear_glow, "Head")
+elif gear == "saboteur_pack":
+    for zz in (1.31, 1.46):
+        _prim_cyl((0.0, 0.22, zz), 0.072, 0.38, m_gear_dark, "Spine2", (0, 90, 0))
+        _prim_cyl((0.0, 0.22, zz), 0.076, 0.12, m_gear_glow, "Spine2", (0, 90, 0))
+    _prim_box((0.0, -0.175, 1.725), (0.23, 0.06, 0.055), m_gear_glow, "Head")
+elif gear == "ammo_pack":
+    _prim_box((0.0, 0.21, 1.38), (0.32, 0.16, 0.30), m_gear_plate, "Spine2")
+    _prim_box((0.0, 0.295, 1.38), (0.22, 0.025, 0.10), m_gear_glow, "Spine2")
+elif gear == "flame_tanks":
+    for sx in (-0.12, 0.12):
+        _prim_cyl((sx, 0.24, 1.42), 0.085, 0.46, m_gear_plate, "Spine2")
+        for zz in (1.31, 1.43, 1.55):
+            _prim_cyl((sx, 0.24, zz), 0.092, 0.035, m_gear_glow, "Spine2")
+    _prim_box((0.0, 0.24, 1.65), (0.28, 0.10, 0.07), m_gear_dark, "Spine2")
+elif gear == "rocket_pack":
+    _prim_box((0.0, 0.22, 1.36), (0.32, 0.16, 0.30), m_gear_dark, "Spine2")
+    _prim_box((0.0, 0.23, 1.36), (0.28, 0.17, 0.22), m_gear_plate, "Spine2")
+    for sx in (-0.09, 0.0, 0.09):
+        _prim_cyl((sx, 0.22, 1.57), 0.036, 0.24, m_gear_plate, "Spine2")
+        _prim_cyl((sx, 0.22, 1.71), 0.042, 0.08, m_gear_glow, "Spine2")
+elif gear == "mech_pack":
+    _prim_box((0.0, 0.22, 1.38), (0.34, 0.18, 0.32), m_gear_plate, "Spine2")
+    _prim_box((0.0, 0.315, 1.38), (0.22, 0.02, 0.18), m_gear_glow, "Spine2")
+    _prim_box((-0.13, 0.20, 1.62), (0.06, 0.06, 0.34), m_gear_dark, "Spine2", (-20, 0, 0))
+    _prim_box((-0.13, 0.05, 1.78), (0.07, 0.28, 0.06), m_gear_plate, "Spine2", (15, 0, 0))
+    _prim_cyl((-0.13, -0.09, 1.75), 0.035, 0.09, m_gear_glow, "Spine2", (90, 0, 0))
+    _prim_box((0.0, -0.175, 1.73), (0.26, 0.065, 0.06), m_gear_glow, "Head")
+
+# Spezielle Handwerkzeuge (Koffer, Schweisserkoffer, Cyberdeck, C4-Ladung) in Rest-Pose
+w_type = opt["--weapon"]
+if w_type == "Briefcase":
+    _prim_box((-0.76, 0.055, 1.42), (0.04, 0.16, 0.03), m_gear_dark, "RightHand")
+    _prim_box((-0.80, -0.01, 1.42), (0.07, 0.025, 0.025), m_gear_dark, "RightHand")
+    _prim_box((-0.80, 0.12, 1.42), (0.07, 0.025, 0.025), m_gear_dark, "RightHand")
+    _prim_box((-0.96, 0.055, 1.42), (0.28, 0.38, 0.11), m_gear_plate, "RightHand")
+    _prim_box((-0.96, 0.055, 1.42), (0.24, 0.34, 0.12), m_gear_dark, "RightHand")
+    _prim_box((-0.96, 0.055, 1.42), (0.14, 0.22, 0.13), m_gear_glow, "RightHand")
+elif w_type == "WelderCase":
+    _prim_box((-0.76, 0.055, 1.42), (0.045, 0.18, 0.035), m_gear_dark, "RightHand")
+    _prim_box((-0.80, -0.02, 1.42), (0.08, 0.03, 0.03), m_gear_dark, "RightHand")
+    _prim_box((-0.80, 0.13, 1.42), (0.08, 0.03, 0.03), m_gear_dark, "RightHand")
+    _prim_box((-0.97, 0.055, 1.42), (0.30, 0.42, 0.15), m_gear_plate, "RightHand")
+    _prim_box((-0.97, -0.08, 1.42), (0.32, 0.045, 0.165), m_gear_dark, "RightHand")
+    _prim_box((-0.97, 0.19, 1.42), (0.32, 0.045, 0.165), m_gear_dark, "RightHand")
+    _prim_box((-0.97, 0.055, 1.42), (0.13, 0.24, 0.165), m_gear_glow, "RightHand")
+elif w_type == "Cyberdeck":
+    _prim_box((0.58, 0.03, 1.46), (0.22, 0.12, 0.09), m_gear_plate, "LeftForeArm")
+    _prim_box((0.58, -0.03, 1.53), (0.26, 0.18, 0.018), m_gear_glow, "LeftForeArm", (28, 0, 0))
+    _prim_box((-0.77, 0.02, 1.44), (0.04, 0.18, 0.04), m_gear_glow, "RightHand")
+elif w_type == "C4Charge":
+    _prim_box((-0.80, 0.03, 1.42), (0.16, 0.26, 0.11), m_gear_dark, "RightHand")
+    _prim_box((-0.80, -0.03, 1.42), (0.18, 0.05, 0.125), m_gear_glow, "RightHand")
+    _prim_box((-0.80, 0.09, 1.42), (0.18, 0.05, 0.125), m_gear_glow, "RightHand")
+
 # ---------- Waffe aus props: rechte Hand, Lauf entlang Rechte->Linke Hand (Referenzpose: Ziel-Idle) ----------
-act_idle = ACT[CLIPS["idle"][0]]
+act_idle = ACT[REF_RIFLE_IDLE]
 rig.animation_data.action = act_idle
 if hasattr(rig.animation_data, "action_slot") and len(act_idle.slots) > 0:
     rig.animation_data.action_slot = act_idle.slots[0]
 bpy.context.scene.frame_set(int(act_idle.frame_range[0]))
 bpy.context.view_layer.update()
-if opt["--weapon"] != "none":
+if w_type not in ("none", "Briefcase", "WelderCase", "Cyberdeck", "C4Charge"):
     import numpy as np
     g = import_part(f"{ROOT}/props/{opt['--weapon']}.glb")
     co = np.array([tuple(g.matrix_world @ vv.co) for vv in g.data.vertices])
@@ -591,10 +737,12 @@ if EXPORT_GLB:
         if img.size[0] > 256 or img.size[1] > 256:
             img.scale(256, 256)
     rig.location = (0, 0, 0)
+    used_acts = {}
     for clip, (path, _, _) in CLIPS.items():
-        act = ACT[path]
+        act = ACT[path].copy()
         act.name = clip
         act.use_fake_user = True
+        used_acts[clip] = act
         cb = act.layers[0].strips[0].channelbag(act.slots[0]) if (hasattr(act, "layers") and len(act.layers) > 0) else act
         for fc in cb.fcurves:
             if 'pose.bones["mixamorig:Hips"].location' in fc.data_path and fc.array_index in (0, 2):
@@ -614,7 +762,7 @@ if EXPORT_GLB:
         st = tr.strips.new(clip, int(act.frame_range[0]), act)
         st.name = clip
         tr.mute = True
-    rig.animation_data.action = ACT[CLIPS["idle"][0]]
+    rig.animation_data.action = used_acts["idle"]
     if hasattr(rig.animation_data, "action_slot") and len(rig.animation_data.action.slots) > 0:
         rig.animation_data.action_slot = rig.animation_data.action.slots[0]
     bpy.context.scene.frame_set(int(rig.animation_data.action.frame_range[0]))

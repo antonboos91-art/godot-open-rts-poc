@@ -62,7 +62,7 @@ func _setup(unit, path: String):
 	_enable_shadows_and_brighten(_model, 0.45)
 	_add_team_ring()
 	_last_pos = unit.global_position
-	var fwd = -unit.global_transform.basis.z
+	var fwd = unit.global_transform.basis.z
 	if fwd.length_squared() > 0.001:
 		_yaw = atan2(fwd.x, fwd.z)
 		_target_yaw = _yaw

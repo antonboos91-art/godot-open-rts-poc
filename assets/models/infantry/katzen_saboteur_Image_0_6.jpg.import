@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dm6q348g8xgt8"
-path="res://.godot/imported/baeren_kodiak_color-palette.jpg-90ae2cac7501174b8d2f8984a9f7c20a.ctex"
+uid="uid://x724ahiknwc"
+path="res://.godot/imported/katzen_saboteur_Image_0_6.jpg-ac06a79da63c9356aa8a5ac448c38417.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "ed64cb10c932ac6f25ff8b93dce55224"
+"md5": "23045f4db4188d3b9375229567980354"
 }
 
 [deps]
 
-source_file="res://assets/models/infantry/baeren_kodiak_color-palette.jpg"
-dest_files=["res://.godot/imported/baeren_kodiak_color-palette.jpg-90ae2cac7501174b8d2f8984a9f7c20a.ctex"]
+source_file="res://assets/models/infantry/katzen_saboteur_Image_0_6.jpg"
+dest_files=["res://.godot/imported/katzen_saboteur_Image_0_6.jpg-ac06a79da63c9356aa8a5ac448c38417.ctex"]
 
 [params]
 
