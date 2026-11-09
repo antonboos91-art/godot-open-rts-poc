@@ -3,6 +3,8 @@ Ausgabe: out/concepts/fbld/<volk>_<rolle>_0000N_.png (4 Stueck je Rolle)"""
 import json, urllib.request, sys
 fac = sys.argv[1]; seed = int(sys.argv[2]) if len(sys.argv) > 2 else 9100
 FX = {
+ "shibas": dict(style="american military faction like GDI, clean high-tech architecture, glossy white and navy blue panels, thin glowing cyan light strips, white star insignia, polished steel",
+                emb="two pointed shiba-inu-ear shaped armor fins on the roof and a white star emblem"),
  "katzen": dict(style="secretive cult-like militant faction like Nod, sleek angular stealth architecture, matte black panels with glowing violet neon lights, sharp spikes, ",
                 emb="two pointed cat-ear shaped armor fins on the roof and a glowing violet cat-eye emblem"),
  "baeren": dict(style="soviet-style heavy industrial faction, brutal massive concrete and riveted steel, red paint with gold trim, red star emblem, ",
