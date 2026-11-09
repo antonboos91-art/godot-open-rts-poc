@@ -238,6 +238,7 @@ const UNITS = {
 			{"hp": 3, "attack_domains": "none"},
 			{"ability": "capture"}
 		],
+		["kampfhund", "Kampf-Shiba", "infantry", 3, 0, 4.0, "barracks", [], {"hp": 6, "attack_damage": 2, "attack_interval": 0.7, "attack_range": 1.6, "speed": 3.4}, {}],
 		["sammler", "Schrott-Sammler", "worker", 3, 0, 3.0, "hq", [], {"hp": 6}, {"ai": true}],
 		[
 			"buggy",
@@ -398,6 +399,7 @@ const UNITS = {
 			{"attack_domains": "none"},
 			{"ability": "sabotage", "cloak": true}
 		],
+		["panther", "Schatten-Panther", "infantry", 3, 0, 4.0, "barracks", [], {"hp": 6, "attack_damage": 2, "attack_interval": 0.7, "attack_range": 1.6, "speed": 3.4}, {}],
 		["sammler", "Kristall-Sammler", "worker", 3, 1, 3.0, "hq", [], {"hp": 5}, {"ai": true}],
 		[
 			"phantom",
@@ -571,6 +573,7 @@ const UNITS = {
 			{"attack_domains": "none"},
 			{"ability": "repair"}
 		],
+		["kodiak", "Kodiak-Brecher", "infantry", 3, 0, 4.0, "barracks", [], {"hp": 6, "attack_damage": 2, "attack_interval": 0.7, "attack_range": 1.6, "speed": 3.4}, {}],
 		["kipper", "Schrott-Kipper", "worker", 4, 0, 4.0, "hq", [], {"hp": 10}, {"ai": true}],
 		[
 			"rammbock",
