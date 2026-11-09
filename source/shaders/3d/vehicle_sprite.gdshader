@@ -1,7 +1,7 @@
 // Vorgerenderte Fahrzeug-Sprites (Factorio-Prinzip): Spalten = Blickrichtungen, Zeilen = Animationsframes.
 // Das Quad zeigt immer zur Kamera; weiche Alphakante und gerenderter Schatten bleiben erhalten.
 shader_type spatial;
-render_mode unshaded, cull_disabled, shadows_disabled, skip_vertex_transform, depth_draw_opaque;
+render_mode unshaded, cull_disabled, shadows_disabled, skip_vertex_transform, depth_prepass_alpha, blend_mix;
 
 uniform sampler2D sheet : source_color, filter_linear_mipmap;
 uniform int columns = 64;
@@ -23,9 +23,18 @@ void vertex() {
 void fragment() {
 	vec2 uv = vec2((UV.x + float(column)) / float(columns), (UV.y + float(row)) / float(rows));
 	vec4 c = texture(sheet, uv);
-	// Deckend zeichnen (sauber mit Nebel/Sichtsystem); weicher Rand per Alpha-Schwelle
-	if (c.a < 0.5) {
+	if (c.a < 0.02) {
 		discard;
 	}
-	ALBEDO = c.rgb / max(c.a, 0.001) * brightness + vec3(flash);
+	vec3 rgb = c.rgb / max(c.a, 0.001);
+	// Der gerenderte Bodenschatten (schwarz, teiltransparent) wird weich eingeblendet statt als schwarzer Fleck
+	bool is_shadow = (rgb.r + rgb.g + rgb.b) < 0.09 && c.a < 0.95;
+	ALBEDO = rgb * brightness + vec3(flash);
+	if (is_shadow) {
+		ALPHA = c.a * 0.45;
+	} else if (c.a < 0.5) {
+		discard;
+	} else {
+		ALPHA = 1.0;
+	}
 }
