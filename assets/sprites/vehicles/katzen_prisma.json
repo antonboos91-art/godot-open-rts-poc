@@ -1,11 +1,11 @@
 {
  "columns": 64,
  "rows": 4,
- "ortho": 3.6,
+ "ortho": 5.0,
  "scale": 0.8,
  "target_z": 0.45,
  "track_pitch": 0.06,
- "muzzle_z": 0.77,
+ "muzzle_z": 1.09,
  "muzzle_dist": 1.85,
  "recoil": 0.18,
  "mirror": true,
