@@ -1,18 +1,18 @@
 {
  "columns": 64,
  "rows": 4,
- "ortho": 3.6,
+ "ortho": 5.0,
  "scale": 0.8,
  "target_z": 0.45,
  "track_pitch": 0.06,
- "muzzle_z": 0.35,
- "muzzle_dist": 0.3,
+ "muzzle_z": 0.4725,
+ "muzzle_dist": 0.405,
  "recoil": 0.18,
  "mirror": true,
  "turret": false,
  "weapon": "rockets",
  "anim": "always",
  "air": true,
- "muzzle_side": 0.58,
+ "muzzle_side": 0.783,
  "engine": "rotor"
 }
