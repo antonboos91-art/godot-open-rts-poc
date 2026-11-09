@@ -182,6 +182,9 @@ static func icon_for(variant, team_color = Color(0.85, 0.85, 0.85)):
 
 
 static func try_attach(unit):
+	var inf3d = load("res://source/match/units/traits/Infantry3D.gd").try_attach(unit)
+	if inf3d != null:
+		return inf3d
 	var infantry = load("res://source/match/units/traits/SpriteInfantry.gd").try_attach(unit)
 	if infantry != null:
 		return infantry

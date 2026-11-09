@@ -9,11 +9,12 @@ from mathutils import Vector
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 opt = {"--model": "dog_shiba", "--pal": "shibas", "--out": "out/mod/quad", "--size": "192", "--length": "1.7", "--flip": "0",
        "--anim": "tools_tmp/anim", "--models": "C:/Users/anton/Desktop/RTS/assets/animations/quadrupeds/mesh2motion_models",
-       "--tint": "", "--armor": "1"}
+       "--tint": "", "--armor": "1", "--export-glb": ""}
 for i, v in enumerate(argv):
     if v in opt and i + 1 < len(argv):
         opt[v] = argv[i + 1]
 PREVIEW = "--preview" in argv
+EXPORT_GLB = opt["--export-glb"]
 SIZE = int(opt["--size"])
 OUT = opt["--out"]
 PAL = {"shibas": ((0.02, 0.04, 0.11, 1), (0.62, 0.65, 0.7, 1), (0.15, 0.75, 1.0, 1)),
@@ -68,6 +69,18 @@ def mat_flat(name, color, metal=0.7, rough=0.35, emit=None):
 
 
 def parent_to_bone(o, b):
+    if EXPORT_GLB:
+        bpy.ops.object.select_all(action="DESELECT")
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        vg = o.vertex_groups.new(name=b.name)
+        vg.add(list(range(len(o.data.vertices))), 1.0, "REPLACE")
+        o.parent = rig
+        o.matrix_parent_inverse = rig.matrix_world.inverted()
+        mod = o.modifiers.new(name="Armature", type="ARMATURE")
+        mod.object = rig
+        return
     bpy.ops.object.select_all(action="DESELECT")
     o.select_set(True)
     rig.select_set(True)
@@ -86,6 +99,19 @@ if opt["--tint"]:
                 p = next((n for n in mt.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
                 if p is None:
                     continue
+                if EXPORT_GLB:
+                    for tex_n in [n for n in mt.node_tree.nodes if n.type == "TEX_IMAGE"]:
+                        if tex_n.image and not tex_n.image.get("_tinted"):
+                            import numpy as np
+                            img = tex_n.image
+                            w_i, h_i = img.size
+                            px = np.array(img.pixels[:], dtype=np.float32).reshape(h_i, w_i, 4)
+                            fac = np.array([max(c, 0.0) ** (1.0 / 2.2) for c in t[:3]], dtype=np.float32)
+                            px[..., :3] = np.clip(px[..., :3] * fac, 0.0, 1.0)
+                            img.pixels = px.ravel().tolist()
+                            img.pack()
+                            img["_tinted"] = True
+                    continue
                 nt = mt.node_tree
                 mix = nt.nodes.new("ShaderNodeMix")
                 mix.data_type = "RGBA"
@@ -100,24 +126,64 @@ if opt["--tint"]:
 
 # Panzerplatten auf dem Ruecken (starr an Knochen) + leuchtender Streifen
 if opt["--armor"] == "1":
-    plate = mat_flat("plate", PAL[1])
+    plate = mat_flat("plate", PAL[1], 0.25 if EXPORT_GLB else 0.7, 0.45 if EXPORT_GLB else 0.35)
     glow = mat_flat("glowp", PAL[2], 0.0, 0.3, PAL[2])
     for bone, wid, ln, up in (("spine_2", 0.16, 0.3, 0.2), ("chest", 0.18, 0.28, 0.22)):
         b = rig.data.bones[bone]
         mid = (rig.matrix_world @ b.head_local + rig.matrix_world @ b.tail_local) / 2
         pos = mid + Vector((0, 0, up * k * 2.0))
+        sx, sy, sz = wid * k * 2.0, ln * k * 2.0, 0.05 * k * 2.0
         bpy.ops.mesh.primitive_cube_add()
         o = bpy.context.active_object
-        o.scale = (wid * k * 2.0, ln * k * 2.0, 0.05 * k * 2.0)
+        o.scale = (sx, sy, sz)
         o.location = pos
         o.data.materials.append(plate)
         parent_to_bone(o, b)
         bpy.ops.mesh.primitive_cube_add()
         g = bpy.context.active_object
-        g.scale = (o.scale.x * 0.22, o.scale.y * 1.03, o.scale.z * 0.6)
-        g.location = pos + Vector((0, 0, o.scale.z * 0.9))
+        g.scale = (sx * 0.22, sy * 1.03, sz * 0.6)
+        g.location = pos + Vector((0, 0, sz * 0.9))
         g.data.materials.append(glow)
         parent_to_bone(g, b)
+
+if EXPORT_GLB:
+    for o in list(bpy.context.scene.objects):
+        if o.name.startswith("Icosphere"):
+            bpy.data.objects.remove(o, do_unlink=True)
+    for img in bpy.data.images:
+        if img.size[0] > 512 or img.size[1] > 512:
+            img.scale(512, 512)
+    rig.location = (0, 0, 0)
+    for clip, (name, _, _) in CLIPS.items():
+        act = ACT[name]
+        act.name = clip
+        act.use_fake_user = True
+        rig.animation_data.action = act
+        if hasattr(rig.animation_data, "action_slot") and len(act.slots) > 0:
+            rig.animation_data.action_slot = act.slots[0]
+        tr = rig.animation_data.nla_tracks.new()
+        tr.name = clip
+        st = tr.strips.new(clip, int(act.frame_range[0]), act)
+        st.name = clip
+        tr.mute = True
+    rig.animation_data.action = ACT[CLIPS["idle"][0]]
+    if hasattr(rig.animation_data, "action_slot") and len(rig.animation_data.action.slots) > 0:
+        rig.animation_data.action_slot = rig.animation_data.action.slots[0]
+    bpy.context.scene.frame_set(int(rig.animation_data.action.frame_range[0]))
+    bpy.context.view_layer.update()
+    os.makedirs(os.path.dirname(os.path.abspath(EXPORT_GLB)), exist_ok=True)
+    bpy.ops.export_scene.gltf(
+        filepath=os.path.abspath(EXPORT_GLB),
+        export_format="GLB",
+        export_animations=True,
+        export_animation_mode="NLA_TRACKS",
+        export_optimize_animation_size=True,
+        export_anim_slide_to_zero=True,
+        export_image_format="JPEG",
+        export_jpeg_quality=85,
+    )
+    print("GLB", EXPORT_GLB, os.path.getsize(EXPORT_GLB))
+    sys.exit(0)
 
 # ---------- Kamera / Licht (wie build_modular) ----------
 scn = bpy.context.scene

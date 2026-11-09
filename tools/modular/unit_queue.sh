@@ -29,9 +29,8 @@ while read fac unit weapon wlen bw bh chest sh fo sn cw chh ss gl pl gn; do
   [ $sn = 1 ] && P="$P, \"a_shin\": \"$SN\""
   echo "{$P}" > $J
   "$B" -b -P game/tools/blender/build_modular_mx.py -- --parts $J --pal $fac --weapon $weapon --weapon-len $wlen --wflip 1 \
-     --bw $bw --bh $bh --notint $NT --core-k $CK --chest-z $CZ --chest-w $cw --chest-h $chh --shoulder-size $ss $GA --gain $gn --out out/mod/unit_${fac}_$unit --size 192 2>&1 | grep -E "Traceback|Error|SHEET"
-  cp out/mod/unit_${fac}_$unit.png game/assets/sprites/infantry/${fac}_$unit.png
-  cp out/mod/unit_${fac}_$unit.json game/assets/sprites/infantry/${fac}_$unit.json
+     --bw $bw --bh $bh --notint $NT --core-k $CK --chest-z $CZ --chest-w $cw --chest-h $chh --shoulder-size $ss $GA --gain $gn \
+     --export-glb game/assets/models/infantry/${fac}_${unit}.glb 2>&1 | grep -E "Traceback|Error|GLB"
   echo done $fac $unit
 done <<L
 shibas trooper AK 0.95 1.0 1.0 a 1 1 1 0.66 0.62 0.40 - - 1.0
@@ -47,4 +46,18 @@ baeren feuertatze ShortCannon 0.85 1.3 1.04 a 1 0 1 0.92 0.7 0.56 1.0,0.35,0.08 
 baeren bazooka RocketLauncher 1.1 1.22 1.02 b 1 0 0 0.86 0.68 0.52 - - 1.0
 baeren mechaniker Shotgun 1.0 1.12 0.97 b 0 1 1 0.8 0.64 0.4 1.0,0.9,0.35 0.55,0.45,0.12 1.0
 L
+
+# Vierbeiner (kampfhund, panther, kodiak)
+while read fac unit model length tint; do
+  [ -n "$1" ] && [ "$1" != "$fac" ] && continue
+  [ -n "$2" ] && [ "$2" != "$unit" ] && continue
+  TA=""; [ "$tint" != "-" ] && TA="--tint $tint"
+  "$B" -b -P game/tools/blender/build_quadruped.py -- --model $model --pal $fac --length $length $TA \
+     --export-glb game/assets/models/infantry/${fac}_${unit}.glb 2>&1 | grep -E "Traceback|Error|GLB"
+  echo done $fac $unit
+done <<Q
+shibas kampfhund dog_shiba 1.7 -
+katzen panther cat 1.65 0.14,0.12,0.16
+baeren kodiak bear_panda 1.85 0.55,0.38,0.22
+Q
 echo ALLDONE

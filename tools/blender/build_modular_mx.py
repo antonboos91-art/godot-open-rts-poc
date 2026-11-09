@@ -11,11 +11,12 @@ argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 opt = {"--parts": "", "--out": "out/mod/mx", "--size": "192", "--pal": "shibas", "--weapon": "AK", "--weapon-len": "0.95",
        "--head-size": "0.42", "--head-rot": "0", "--chest-h": "0.62", "--chest-z": "1.42", "--chest-w": "0.66",
        "--shoulder-size": "0.40", "--shoulder-lift": "0.02", "--wgrip": "0.25", "--wflip": "0", "--wrot": "0,0,0", "--wup": "0.0",
-       "--root": "C:/Users/anton/Desktop/RTS/assets/animations", "--build": "1.0", "--yaw": "45", "--bw": "1.0", "--bh": "1.0", "--notint": "0", "--core-k": "1.0", "--glow": "", "--plate": "", "--gain": "1.0"}
+       "--root": "C:/Users/anton/Desktop/RTS/assets/animations", "--build": "1.0", "--yaw": "45", "--bw": "1.0", "--bh": "1.0", "--notint": "0", "--core-k": "1.0", "--glow": "", "--plate": "", "--gain": "1.0", "--export-glb": ""}
 for i, v in enumerate(argv):
     if v in opt and i + 1 < len(argv):
         opt[v] = argv[i + 1]
 PREVIEW = "--preview" in argv
+EXPORT_GLB = opt["--export-glb"]
 SIZE = int(opt["--size"])
 OUT = opt["--out"]
 ROOT = opt["--root"]
@@ -89,36 +90,79 @@ def flat_mat(name, color, rough=0.85, metal=0.0):
 suit = flat_mat("suit", PAL[0], 0.32, 0.75)
 nt = suit.node_tree
 p = nt.nodes["Principled BSDF"]
-tc = nt.nodes.new("ShaderNodeTexCoord")
-vor = nt.nodes.new("ShaderNodeTexVoronoi")
-vor.feature = "DISTANCE_TO_EDGE"
-vor.inputs["Scale"].default_value = 0.045
-nt.links.new(tc.outputs["Object"], vor.inputs["Vector"])
-vor2 = nt.nodes.new("ShaderNodeTexVoronoi")
-vor2.inputs["Scale"].default_value = 0.045
-nt.links.new(tc.outputs["Object"], vor2.inputs["Vector"])
-lines = nt.nodes.new("ShaderNodeMath")
-lines.operation = "LESS_THAN"
-lines.inputs[1].default_value = 0.012
-nt.links.new(vor.outputs["Distance"], lines.inputs[0])
-plates = nt.nodes.new("ShaderNodeMath")
-plates.operation = "GREATER_THAN"
-plates.inputs[1].default_value = 0.8
-sep = nt.nodes.new("ShaderNodeSeparateColor")
-nt.links.new(vor2.outputs["Color"], sep.inputs["Color"])
-nt.links.new(sep.outputs[0], plates.inputs[0])
-mix = nt.nodes.new("ShaderNodeMix")
-mix.data_type = "RGBA"
-mix.inputs[6].default_value = PAL[0]
-mix.inputs[7].default_value = PAL[1]
-nt.links.new(plates.outputs[0], mix.inputs[0])
-nt.links.new(mix.outputs[2], p.inputs["Base Color"])
-p.inputs["Emission Color"].default_value = PAL[2]
-boost = nt.nodes.new("ShaderNodeMath")
-boost.operation = "MULTIPLY"
-boost.inputs[1].default_value = 2.5
-nt.links.new(lines.outputs[0], boost.inputs[0])
-nt.links.new(boost.outputs[0], p.inputs["Emission Strength"])
+if EXPORT_GLB:
+    p.inputs["Metallic"].default_value = 0.20
+    p.inputs["Roughness"].default_value = 0.45
+    import numpy as np
+    rng = np.random.default_rng(42)
+    pts_v = rng.random((22, 2))
+    gy, gx = np.mgrid[0:256, 0:256] / 256.0
+    d1 = np.full((256, 256), 1e9, dtype=np.float32)
+    d2 = np.full((256, 256), 1e9, dtype=np.float32)
+    cid = np.zeros((256, 256), dtype=np.int32)
+    for idx_p, (px_v, py_v) in enumerate(pts_v):
+        for dx in (-1.0, 0.0, 1.0):
+            for dy in (-1.0, 0.0, 1.0):
+                dd = np.sqrt((gx - (px_v + dx)) ** 2 + (gy - (py_v + dy)) ** 2)
+                m1 = dd < d1
+                d2 = np.where(m1, d1, np.minimum(d2, dd))
+                cid = np.where(m1, idx_p, cid)
+                d1 = np.where(m1, dd, d1)
+    edge_mask = ((d2 - d1) < 0.011).astype(np.float32)
+    plate_mask = ((cid % 5) == 0).astype(np.float32)[..., None]
+    col_a = np.array([c ** (1.0 / 2.2) for c in PAL[0][:3]] + [1.0], dtype=np.float32)
+    col_b = np.array([c ** (1.0 / 2.2) for c in PAL[1][:3]] + [1.0], dtype=np.float32)
+    col_px = col_a * (1.0 - plate_mask) + col_b * plate_mask
+    img_col = bpy.data.images.new("suit_col", width=256, height=256, alpha=False)
+    img_col.pixels = col_px.ravel().tolist()
+    img_col.pack()
+    n_col = nt.nodes.new("ShaderNodeTexImage")
+    n_col.image = img_col
+    nt.links.new(n_col.outputs["Color"], p.inputs["Base Color"])
+
+    em_c = np.array([c ** (1.0 / 2.2) for c in PAL[2][:3]], dtype=np.float32)
+    em_px = np.ones((256, 256, 4), dtype=np.float32)
+    em_px[..., 0] = em_c[0] * edge_mask
+    em_px[..., 1] = em_c[1] * edge_mask
+    em_px[..., 2] = em_c[2] * edge_mask
+    img_em = bpy.data.images.new("suit_emit", width=256, height=256, alpha=False)
+    img_em.pixels = em_px.ravel().tolist()
+    img_em.pack()
+    n_em = nt.nodes.new("ShaderNodeTexImage")
+    n_em.image = img_em
+    nt.links.new(n_em.outputs["Color"], p.inputs["Emission Color"])
+    p.inputs["Emission Strength"].default_value = 2.5
+else:
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    vor = nt.nodes.new("ShaderNodeTexVoronoi")
+    vor.feature = "DISTANCE_TO_EDGE"
+    vor.inputs["Scale"].default_value = 0.045
+    nt.links.new(tc.outputs["Object"], vor.inputs["Vector"])
+    vor2 = nt.nodes.new("ShaderNodeTexVoronoi")
+    vor2.inputs["Scale"].default_value = 0.045
+    nt.links.new(tc.outputs["Object"], vor2.inputs["Vector"])
+    lines = nt.nodes.new("ShaderNodeMath")
+    lines.operation = "LESS_THAN"
+    lines.inputs[1].default_value = 0.012
+    nt.links.new(vor.outputs["Distance"], lines.inputs[0])
+    plates = nt.nodes.new("ShaderNodeMath")
+    plates.operation = "GREATER_THAN"
+    plates.inputs[1].default_value = 0.8
+    sep = nt.nodes.new("ShaderNodeSeparateColor")
+    nt.links.new(vor2.outputs["Color"], sep.inputs["Color"])
+    nt.links.new(sep.outputs[0], plates.inputs[0])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    mix.inputs[6].default_value = PAL[0]
+    mix.inputs[7].default_value = PAL[1]
+    nt.links.new(plates.outputs[0], mix.inputs[0])
+    nt.links.new(mix.outputs[2], p.inputs["Base Color"])
+    p.inputs["Emission Color"].default_value = PAL[2]
+    boost = nt.nodes.new("ShaderNodeMath")
+    boost.operation = "MULTIPLY"
+    boost.inputs[1].default_value = 2.5
+    nt.links.new(lines.outputs[0], boost.inputs[0])
+    nt.links.new(boost.outputs[0], p.inputs["Emission Strength"])
 glove = flat_mat("glove", (0.8, 0.8, 0.82, 1))
 boot = flat_mat("boot", (0.015, 0.02, 0.04, 1), 0.5)
 
@@ -130,6 +174,7 @@ for obj in (body, joints):
         obj.data.materials.append(m)
     bm = bmesh.new()
     bm.from_mesh(obj.data)
+    uv_lay = bm.loops.layers.uv.verify()
     kill = []
     for f in bm.faces:
         c = obj.matrix_world @ f.calc_center_median()
@@ -142,15 +187,30 @@ for obj in (body, joints):
             f.material_index = 2
         else:
             f.material_index = 0
+            if EXPORT_GLB:
+                for lp in f.loops:
+                    wv = obj.matrix_world @ lp.vert.co
+                    lp[uv_lay].uv = ((wv.x + wv.y) * 1.6, wv.z * 1.6)
     bmesh.ops.delete(bm, geom=kill, context="FACES")
     bmesh.ops.holes_fill(bm, edges=[e for e in bm.edges if e.is_boundary], sides=0)
     bm.to_mesh(obj.data)
     bm.free()
+    obj.data.validate()
+    if EXPORT_GLB and len(obj.data.polygons) > 2000:
+        dm = obj.modifiers.new("Dec", "DECIMATE")
+        dm.ratio = 0.28
+        bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.modifier_apply(modifier=dm.name)
+        obj.data.validate()
 
 
 # ---------- Teile laden und an Knochen haengen ----------
+_PART_MAT_CACHE = {}
+
+
 def import_part(path):
     before = set(bpy.context.scene.objects)
+    before_imgs = set(bpy.data.images)
     bpy.ops.import_scene.gltf(filepath=path)
     new = [o for o in bpy.context.scene.objects if o not in before and o.type == "MESH"]
     for o in bpy.context.scene.objects:
@@ -164,6 +224,33 @@ def import_part(path):
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     for e in [x for x in bpy.context.scene.objects if x not in before and x.type == "EMPTY"]:
         bpy.data.objects.remove(e, do_unlink=True)
+    if EXPORT_GLB:
+        if path in _PART_MAT_CACHE:
+            cached_mats = _PART_MAT_CACHE[path]
+            for idx_s, slot in enumerate(o.material_slots):
+                if idx_s < len(cached_mats):
+                    slot.material = cached_mats[idx_s]
+            for img in [im for im in bpy.data.images if im not in before_imgs]:
+                bpy.data.images.remove(img)
+        else:
+            # Strip heavy normal/ORM secondary textures on small unit parts to keep GLB compact
+            for slot in o.material_slots:
+                mt = slot.material
+                if mt and mt.use_nodes:
+                    nt_m = mt.node_tree
+                    pb_m = next((n for n in nt_m.nodes if n.type == "BSDF_PRINCIPLED"), None)
+                    if pb_m:
+                        for inp_n in ("Normal", "Metallic", "Roughness"):
+                            for lk in list(pb_m.inputs[inp_n].links):
+                                nt_m.links.remove(lk)
+                        pb_m.inputs["Metallic"].default_value = 0.15
+                        pb_m.inputs["Roughness"].default_value = 0.65
+            _PART_MAT_CACHE[path] = [s.material for s in o.material_slots]
+        if len(o.data.polygons) > 1200:
+            dm = o.modifiers.new("Dec", "DECIMATE")
+            dm.ratio = 0.28
+            bpy.context.view_layer.objects.active = o
+            bpy.ops.object.modifier_apply(modifier=dm.name)
     return o
 
 
@@ -188,6 +275,18 @@ def fit(o, size, axis, center):
 
 
 def attach(o, bone_name):
+    if EXPORT_GLB:
+        bpy.ops.object.select_all(action="DESELECT")
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        vg = o.vertex_groups.new(name="mixamorig:" + bone_name)
+        vg.add(list(range(len(o.data.vertices))), 1.0, "REPLACE")
+        o.parent = rig
+        o.matrix_parent_inverse = rig.matrix_world.inverted()
+        mod = o.modifiers.new(name="Armature", type="ARMATURE")
+        mod.object = rig
+        return
     bpy.ops.object.select_all(action="DESELECT")
     o.select_set(True)
     rig.select_set(True)
@@ -196,7 +295,52 @@ def attach(o, bone_name):
     bpy.ops.object.parent_set(type="BONE", keep_transform=True)
 
 
+def _tint_img_pixels(img, factor_rgb):
+    if img is None or img.get("_tinted"):
+        return
+    import numpy as np
+    w_i, h_i = img.size
+    if w_i == 0 or h_i == 0:
+        return
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(h_i, w_i, 4)
+    fac = np.array([max(c, 0.0) ** (1.0 / 2.2) for c in factor_rgb[:3]], dtype=np.float32)
+    px[..., :3] = np.clip(px[..., :3] * fac, 0.0, 1.0)
+    img.pixels = px.ravel().tolist()
+    img.pack()
+    img["_tinted"] = True
+
+
 def tint_dark_silver(o):
+    if EXPORT_GLB:
+        gain = float(opt["--gain"])
+        for slot in o.material_slots:
+            m = slot.material
+            if m is None or not m.use_nodes:
+                continue
+            nt2 = m.node_tree
+            pb = next((n for n in nt2.nodes if n.type == "BSDF_PRINCIPLED"), None)
+            if pb is None:
+                continue
+            if opt["--notint"] != "1":
+                pb.inputs["Metallic"].default_value = 0.25
+                pb.inputs["Roughness"].default_value = 0.50
+                fac_c = PAL[3][:3]
+            else:
+                if gain == 1.0:
+                    continue
+                fac_c = (gain, gain, gain)
+            tex_n = next((lk.from_node for lk in pb.inputs["Base Color"].links if lk.from_node.type == "TEX_IMAGE"), None)
+            if tex_n and tex_n.image:
+                _tint_img_pixels(tex_n.image, fac_c)
+            else:
+                bc = pb.inputs["Base Color"].default_value
+                pb.inputs["Base Color"].default_value = (
+                    min(1.0, bc[0] * fac_c[0]),
+                    min(1.0, bc[1] * fac_c[1]),
+                    min(1.0, bc[2] * fac_c[2]),
+                    bc[3],
+                )
+        return
     if opt["--notint"] == "1":
         gain = float(opt["--gain"])
         for slot in o.material_slots:
@@ -320,6 +464,16 @@ if "a_chest" in PARTS:
     core.scale = ((hi.x - lo.x) * 0.47 * ck, (hi.y - lo.y) * 0.47 * ck, (hi.z - lo.z) * 0.48 * ck)
     core.location = (lo + hi) / 2
     bpy.ops.object.transform_apply(location=True, rotation=False, scale=True)
+    if EXPORT_GLB:
+        bm_c = bmesh.new()
+        bm_c.from_mesh(core.data)
+        uv_c = bm_c.loops.layers.uv.verify()
+        for f_c in bm_c.faces:
+            for lp_c in f_c.loops:
+                wv_c = core.matrix_world @ lp_c.vert.co
+                lp_c[uv_c].uv = ((wv_c.x + wv_c.y) * 1.6, wv_c.z * 1.6)
+        bm_c.to_mesh(core.data)
+        bm_c.free()
     core.data.materials.append(suit)
     attach(core, "Spine2")
     attach(c, "Spine2")
@@ -334,6 +488,11 @@ for side, sign, mxs in (("L", 1, "Left"), ("R", -1, "Right")):
             s.select_set(True)
             bpy.context.view_layer.objects.active = s
             bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+            bm_s = bmesh.new()
+            bm_s.from_mesh(s.data)
+            bmesh.ops.reverse_faces(bm_s, faces=bm_s.faces)
+            bm_s.to_mesh(s.data)
+            bm_s.free()
         lo, hi = bbox(s)
         k = float(opt["--shoulder-size"]) / max(hi - lo)
         s.scale = (k, k, k)
@@ -396,18 +555,84 @@ if opt["--weapon"] != "none":
     cen2 -= aim * cen2.dot(aim)
     g.location = rh - gp - cen2 + Vector((0, 0, float(opt["--wup"])))
     bpy.context.view_layer.update()
-    bpy.ops.object.select_all(action="DESELECT")
-    g.select_set(True)
-    rig.select_set(True)
-    bpy.context.view_layer.objects.active = rig
-    bones.active = bones["mixamorig:RightHand"]
-    bpy.ops.object.parent_set(type="BONE", keep_transform=True)
+    if EXPORT_GLB:
+        pb = rig.pose.bones["mixamorig:RightHand"]
+        m_posed = rig.matrix_world @ pb.matrix
+        m_rest = rig.matrix_world @ pb.bone.matrix_local
+        m_g_rest = m_rest @ m_posed.inverted() @ g.matrix_world
+        rig.data.pose_position = "REST"
+        bpy.context.view_layer.update()
+        g.matrix_world = m_g_rest
+        bpy.context.view_layer.update()
+        attach(g, "RightHand")
+        rig.data.pose_position = "POSE"
+        bpy.context.view_layer.update()
+    else:
+        bpy.ops.object.select_all(action="DESELECT")
+        g.select_set(True)
+        rig.select_set(True)
+        bpy.context.view_layer.objects.active = rig
+        bones.active = bones["mixamorig:RightHand"]
+        bpy.ops.object.parent_set(type="BONE", keep_transform=True)
     print("WEAPON attached", opt["--weapon"])
 
 # Koerperbau je Einheit (breit/schmal, gross/klein), Teile und Waffe hängen an Knochen und skalieren mit
 sx0, sy0, sz0 = rig.scale
 rig.scale = (sx0 * float(opt["--bw"]), sy0 * float(opt["--bw"]), sz0 * float(opt["--bh"]))
 bpy.context.view_layer.update()
+
+if EXPORT_GLB:
+    for o in list(bpy.context.scene.objects):
+        if o.name.startswith("Icosphere"):
+            bpy.data.objects.remove(o, do_unlink=True)
+        elif o.type == "MESH":
+            o.data.validate()
+    for img in bpy.data.images:
+        if img.size[0] > 256 or img.size[1] > 256:
+            img.scale(256, 256)
+    rig.location = (0, 0, 0)
+    for clip, (path, _, _) in CLIPS.items():
+        act = ACT[path]
+        act.name = clip
+        act.use_fake_user = True
+        cb = act.layers[0].strips[0].channelbag(act.slots[0]) if (hasattr(act, "layers") and len(act.layers) > 0) else act
+        for fc in cb.fcurves:
+            if 'pose.bones["mixamorig:Hips"].location' in fc.data_path and fc.array_index in (0, 2):
+                v0 = fc.keyframe_points[0].co[1]
+                fac = 0.3 if clip == "die" else 0.0
+                for kp in fc.keyframe_points:
+                    val = (kp.co[1] - v0) * fac
+                    kp.co[1] = val
+                    kp.handle_left[1] = val
+                    kp.handle_right[1] = val
+                fc.update()
+        rig.animation_data.action = act
+        if hasattr(rig.animation_data, "action_slot") and len(act.slots) > 0:
+            rig.animation_data.action_slot = act.slots[0]
+        tr = rig.animation_data.nla_tracks.new()
+        tr.name = clip
+        st = tr.strips.new(clip, int(act.frame_range[0]), act)
+        st.name = clip
+        tr.mute = True
+    rig.animation_data.action = ACT[CLIPS["idle"][0]]
+    if hasattr(rig.animation_data, "action_slot") and len(rig.animation_data.action.slots) > 0:
+        rig.animation_data.action_slot = rig.animation_data.action.slots[0]
+    bpy.context.scene.frame_set(int(rig.animation_data.action.frame_range[0]))
+    bpy.context.view_layer.update()
+    os.makedirs(os.path.dirname(os.path.abspath(EXPORT_GLB)), exist_ok=True)
+    bpy.ops.export_scene.gltf(
+        filepath=os.path.abspath(EXPORT_GLB),
+        export_format="GLB",
+        export_animations=True,
+        export_animation_mode="NLA_TRACKS",
+        export_optimize_animation_size=True,
+        export_anim_slide_to_zero=True,
+        export_frame_step=2,
+        export_image_format="JPEG",
+        export_jpeg_quality=80,
+    )
+    print("GLB", EXPORT_GLB, os.path.getsize(EXPORT_GLB))
+    sys.exit(0)
 # ---------- Kamera / Licht ----------
 scn = bpy.context.scene
 cam_d = bpy.data.cameras.new("cam")

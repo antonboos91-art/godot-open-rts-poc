@@ -105,7 +105,8 @@ func _run():
 	)
 	_check(
 		trooper.find_child("PixelSprite", false, false) != null
-		or trooper.find_child("SpriteInfantry", false, false) != null,
+		or trooper.find_child("SpriteInfantry", false, false) != null
+		or trooper.find_child("Infantry3D", false, false) != null,
 		"units show a pixel sprite"
 	)
 
