@@ -451,7 +451,8 @@ func _setup_player_units():
 			predefined_units.map(func(unit): _setup_unit_groups(unit, unit.player))
 		else:
 			_spawn_player_units(
-				player, map.find_child("SpawnPoints").get_child(player_index).global_transform
+				player,
+				map.find_child("SpawnPoints").get_child(_spawn_index_of(player)).global_transform
 			)
 
 
@@ -523,10 +524,20 @@ func _move_camera_to_initial_position():
 		_move_camera_to_player_units_crowd_pivot(get_tree().get_nodes_in_group("players")[0])
 
 
+## Startpunkt gleichmaessig ueber die vorhandenen Startpunkte verteilt, damit Gegner weit auseinander starten.
+func _spawn_index_of(player):
+	var real_players = _players.get_children().filter(func(child): return child is Player)
+	var spawn_count = map.find_child("SpawnPoints").get_child_count()
+	var ordinal = real_players.find(player)
+	if ordinal < 0 or real_players.size() >= spawn_count:
+		return player.get_index() % spawn_count
+	return int(round(float(ordinal) * spawn_count / real_players.size())) % spawn_count
+
+
 func _move_camera_to_spawn_point_of(player):
 	if player == null:
 		return
-	var spawn_point = map.find_child("SpawnPoints").get_child(player.get_index())
+	var spawn_point = map.find_child("SpawnPoints").get_child(_spawn_index_of(player))
 	_camera.set_position_safely(spawn_point.global_position)
 
 

@@ -5,7 +5,7 @@ const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 
 @export_group("Size")
 @export var size_min = 1
-@export var size_max = 20
+@export var size_max = 30
 @export_group("Movement")
 @export var screen_margin_for_movement = 2  # px
 @export var movement_speed = 1.1

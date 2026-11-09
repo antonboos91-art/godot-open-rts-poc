@@ -13,6 +13,9 @@ const SHIBAS = "shibas"
 const KATZEN = "katzen"
 const BAEREN = "baeren"
 const CLOAK_DETECTION_M = 3.5
+## Fernkampf-Reichweiten (ab RANGED_MIN) werden skaliert, damit Gefechte auf den groesseren Karten auf Distanz stattfinden
+const RANGE_SCALE = 1.4
+const RANGED_MIN = 3.0
 const PLAYABLE = [SHIBAS, KATZEN, BAEREN]
 
 const UNITS_DIR = "res://source/match/units/"
@@ -843,8 +846,15 @@ static func deploy_target(variant):
 
 
 ## Werte als Eigenschaften für Unit.set() (Domänen in Navigation-Enum übersetzt).
+static func scaled_range(attack_range):
+	return attack_range * RANGE_SCALE if attack_range >= RANGED_MIN else attack_range
+
+
 static func stats(variant):
 	var result = entry(variant).get("stats", {}).duplicate()
+	if "attack_range" in result:
+		result["attack_range"] = scaled_range(result["attack_range"])
+		result["sight_range"] = max(result.get("sight_range", 0.0), result["attack_range"] + 2.0)
 	if "attack_domains" in result and result["attack_domains"] is String:
 		var domain = Constants.Match.Navigation.Domain
 		result["attack_domains"] = {

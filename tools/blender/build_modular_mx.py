@@ -11,7 +11,7 @@ argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 opt = {"--parts": "", "--out": "out/mod/mx", "--size": "192", "--pal": "shibas", "--weapon": "AK", "--weapon-len": "0.95",
        "--head-size": "0.42", "--head-rot": "0", "--chest-h": "0.62", "--chest-z": "1.42", "--chest-w": "0.66",
        "--shoulder-size": "0.40", "--shoulder-lift": "0.02", "--wgrip": "0.25", "--wflip": "0", "--wrot": "0,0,0", "--wup": "0.0",
-       "--root": "C:/Users/anton/Desktop/RTS/assets/animations", "--build": "1.0", "--yaw": "45"}
+       "--root": "C:/Users/anton/Desktop/RTS/assets/animations", "--build": "1.0", "--yaw": "45", "--bw": "1.0", "--bh": "1.0", "--notint": "0", "--core-k": "1.0", "--glow": "", "--plate": "", "--gain": "1.0"}
 for i, v in enumerate(argv):
     if v in opt and i + 1 < len(argv):
         opt[v] = argv[i + 1]
@@ -23,6 +23,16 @@ PARTS = json.load(open(opt["--parts"])) if opt["--parts"] else {}
 PAL = {"shibas": ((0.02, 0.04, 0.11, 1), (0.75, 0.78, 0.82, 1), (0.15, 0.75, 1.0, 1), (0.42, 0.44, 0.48, 1)),
        "katzen": ((0.015, 0.01, 0.035, 1), (0.20, 0.12, 0.32, 1), (0.75, 0.2, 1.0, 1), (0.24, 0.17, 0.33, 1)),
        "baeren": ((0.13, 0.02, 0.015, 1), (0.80, 0.58, 0.14, 1), (1.0, 0.65, 0.12, 1), (0.58, 0.42, 0.16, 1))}[opt["--pal"]]
+
+def _rgba(s):
+    v = [float(x) for x in s.split(",")]
+    return (v[0], v[1], v[2], 1)
+
+
+if opt["--glow"]:
+    PAL = (PAL[0], PAL[1], _rgba(opt["--glow"]), PAL[3])
+if opt["--plate"]:
+    PAL = (PAL[0], _rgba(opt["--plate"]), PAL[2], PAL[3])
 
 # Clip -> (Datei relativ zu --root, Frames im Sheet, Schleife)
 CLIPS = {"idle": ("basic_shooter_pack/rifle aiming idle.fbx", 1, True),
@@ -187,6 +197,27 @@ def attach(o, bone_name):
 
 
 def tint_dark_silver(o):
+    if opt["--notint"] == "1":
+        gain = float(opt["--gain"])
+        for slot in o.material_slots:
+            m = slot.material
+            if m is None or not m.use_nodes:
+                continue
+            pb = next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+            if pb is None or gain == 1.0:
+                continue
+            src = pb.inputs["Base Color"].links[0].from_socket if pb.inputs["Base Color"].links else None
+            mx = m.node_tree.nodes.new("ShaderNodeMix")
+            mx.data_type = "RGBA"
+            mx.blend_type = "MULTIPLY"
+            mx.inputs[0].default_value = 1.0
+            mx.inputs[7].default_value = (gain, gain, gain, 1)
+            if src is not None:
+                m.node_tree.links.new(src, mx.inputs[6])
+            else:
+                mx.inputs[6].default_value = pb.inputs["Base Color"].default_value
+            m.node_tree.links.new(mx.outputs[2], pb.inputs["Base Color"])
+        return
     for slot in o.material_slots:
         m = slot.material
         if m is None or not m.use_nodes:
@@ -285,7 +316,8 @@ if "a_chest" in PARTS:
     lo, hi = bbox(c)
     bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=14, radius=1.0)
     core = bpy.context.active_object
-    core.scale = ((hi.x - lo.x) * 0.47, (hi.y - lo.y) * 0.47, (hi.z - lo.z) * 0.48)
+    ck = float(opt["--core-k"])
+    core.scale = ((hi.x - lo.x) * 0.47 * ck, (hi.y - lo.y) * 0.47 * ck, (hi.z - lo.z) * 0.48 * ck)
     core.location = (lo + hi) / 2
     bpy.ops.object.transform_apply(location=True, rotation=False, scale=True)
     core.data.materials.append(suit)
@@ -372,6 +404,10 @@ if opt["--weapon"] != "none":
     bpy.ops.object.parent_set(type="BONE", keep_transform=True)
     print("WEAPON attached", opt["--weapon"])
 
+# Koerperbau je Einheit (breit/schmal, gross/klein), Teile und Waffe hängen an Knochen und skalieren mit
+sx0, sy0, sz0 = rig.scale
+rig.scale = (sx0 * float(opt["--bw"]), sy0 * float(opt["--bw"]), sz0 * float(opt["--bh"]))
+bpy.context.view_layer.update()
 # ---------- Kamera / Licht ----------
 scn = bpy.context.scene
 cam_d = bpy.data.cameras.new("cam")

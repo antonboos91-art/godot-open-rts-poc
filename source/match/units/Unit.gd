@@ -113,6 +113,12 @@ func _get_radius():
 	return null
 
 
+## Angriffsreichweite gemessen bis zur Kante des Ziels (Gebaeude sind gross).
+func attack_reach_to(target):
+	var target_radius = target.radius
+	return attack_range + (target_radius if target_radius != null else 0.0)
+
+
 func _get_movement_domain():
 	if find_child("Movement") != null:
 		return find_child("Movement").domain
@@ -217,7 +223,13 @@ func _setup_default_properties_from_constants():
 	if "speed" in variant_stats and find_child("Movement") != null:
 		find_child("Movement").speed = variant_stats["speed"]
 	variant_stats.erase("speed")
+	if default_properties.has("attack_range") and not variant_stats.has("attack_range"):
+		default_properties["attack_range"] = Factions.scaled_range(default_properties["attack_range"])
 	default_properties.merge(variant_stats, true)
+	if default_properties.has("attack_range") and default_properties.has("sight_range"):
+		default_properties["sight_range"] = max(
+			default_properties["sight_range"], default_properties["attack_range"] + 2.0
+		)
 	for property in default_properties:
 		# Auf Clients kamen hp/hp_max evtl. schon vom Host
 		if Network.is_client() and property in ["hp", "hp_max"] and get(property) != null:

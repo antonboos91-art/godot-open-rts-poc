@@ -114,7 +114,7 @@ func _row_for(world_dir):
 	to_cam.y = 0.0
 	var a_face = atan2(world_dir.x, world_dir.z)
 	var a_cam = atan2(to_cam.x, to_cam.z)
-	var rel = wrapf(a_cam - a_face, 0.0, TAU)
+	var rel = wrapf(a_face - a_cam, 0.0, TAU)
 	var dirs = int(_meta["dirs"])
 	return int(round(rel / TAU * dirs)) % dirs
 

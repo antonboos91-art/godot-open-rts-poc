@@ -25,6 +25,11 @@ func _ready():
 	_refresh()
 
 
+func _physics_process(_delta):
+	# jeden Physik-Frame pruefen, damit Fernkaempfer genau an ihrer Reichweite stehen bleiben
+	_teardown_if_distance_reached()
+
+
 func _exit_tree():
 	_movement_trait.stop()
 

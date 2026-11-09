@@ -92,7 +92,7 @@ func _hit_target():
 func _teardown_if_out_of_range():
 	if (
 		_unit.global_position_yless.distance_to(_target_unit.global_position_yless)
-		> _unit.attack_range
+		> _unit.attack_reach_to(_target_unit)
 	):
 		queue_free()
 		return true
