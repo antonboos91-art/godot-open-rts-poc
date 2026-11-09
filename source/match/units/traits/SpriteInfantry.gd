@@ -9,6 +9,7 @@ const DIR = "res://assets/sprites/infantry/"
 const WALK_FPS = 11.0
 const SHOOT_FPS = 14.0
 const DIE_FPS = 9.0
+const IDLE_FPS = 7.0
 const CORPSE_SECONDS = 8.0
 ## Bildhoehe der Figur im Spiel (Weltmeter, Kopf bis Fuss)
 const FIGURE_HEIGHT = 1.9
@@ -24,6 +25,10 @@ var _walk_time = 0.0
 var _shoot_time = -1.0
 var _aim_target = null
 var _moving_for = 0.0
+var _idle_for = 0.0
+var _idle_clip = ""
+var _idle_time = 0.0
+var _idle_wait = 4.0
 
 
 static func sheet_base_for(variant):
@@ -148,6 +153,29 @@ func _process(delta):
 			if to_t.length() > 0.01:
 				facing = to_t.normalized()
 				_move_dir = facing
+	# Idle-Animationen: nach einigen Sekunden Stillstand zufaellig Waffe pruefen / gestikulieren
+	if _shoot_time < 0.0 and _moving_for <= 0.0:
+		_idle_for += delta
+		if _idle_clip == "" and _idle_for > _idle_wait:
+			var options = []
+			for n in ["idle_a", "idle_b"]:
+				if _meta["clips"].has(n):
+					options.append(n)
+			if options.size() > 0:
+				_idle_clip = options[randi() % options.size()]
+				_idle_time = 0.0
+			_idle_wait = randf_range(4.0, 9.0)
+			_idle_for = 0.0
+		if _idle_clip != "":
+			_idle_time += delta
+			var idx = int(_idle_time * IDLE_FPS)
+			if idx >= int(_meta["clips"][_idle_clip][1]):
+				_idle_clip = ""
+			else:
+				column = _clip_column(_idle_clip, idx)
+	else:
+		_idle_clip = ""
+		_idle_for = 0.0
 	if _shoot_time < 0.0 and _moving_for > 0.0:
 		_walk_time += delta
 		var walk_frames = int(_meta["clips"]["walk"][1])

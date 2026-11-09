@@ -24,7 +24,8 @@ PARTS = json.load(open(opt["--parts"])) if opt["--parts"] else {}
 
 # Clips: Name im Sheet -> (Action, Frames im Sheet, Schleife)
 CLIPS = {"idle": ("Pistol_Idle_Loop", 1, True), "walk": ("Jog_Fwd_Loop", 8, True),
-         "shoot": ("Pistol_Shoot", 5, False), "die": ("Death01", 8, False)}
+         "shoot": ("Pistol_Shoot", 5, False), "die": ("Death01", 8, False),
+         "idle_a": ("Pistol_Reload", 10, False), "idle_b": ("Idle_Talking_Loop", 10, False)}
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=opt["--lib"])
