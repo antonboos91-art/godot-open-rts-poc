@@ -304,7 +304,8 @@ func _run():
 
 	# Bären-Kraftwerke explodieren und beschädigen Nachbarn
 	var boom_power = _spawn_structure(players[2], "baeren/power_big", Vector3(-20, 0, 20))
-	var neighbour = _spawn_unit(me, "shibas/tesla", Vector3(-20, 0, 22))
+	# Verbuendeter Panzer des Besitzers: greift das Kraftwerk nicht an (sonst Wettlauf mit dem Angriffs-Timer)
+	var neighbour = _spawn_unit(players[2], "baeren/grizzly", Vector3(-20, 0, 22))
 	await _frames(3)
 	var neighbour_hp = neighbour.hp
 	boom_power.hp = 0
