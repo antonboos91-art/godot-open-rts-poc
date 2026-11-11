@@ -21,6 +21,8 @@ var _speed = 0.0
 var _recoil = 0.0
 var _engine = null
 var _tracks_sound = null
+var _aim_target = null
+var _aim_until = 0
 
 
 static func dir_for(variant):
@@ -189,12 +191,19 @@ func _process(delta):
 	rotation.x += -_recoil * 0.05
 
 
+## Aktuelles Ziel: zuletzt beschossene Einheit, sonst Ziel der Aktion (auch verschachtelt,
+## z. B. WaitingForTargets -> AutoAttacking -> AttackingWhileInRange).
 func _current_target():
+	if _aim_target != null and is_instance_valid(_aim_target) and Time.get_ticks_msec() < _aim_until:
+		return _aim_target
 	var action = _unit.get("action")
-	if action != null and is_instance_valid(action):
+	var depth = 0
+	while action != null and is_instance_valid(action) and depth < 6:
 		var t = action.get("_target_unit")
 		if t != null and is_instance_valid(t):
 			return t
+		action = action.get("_sub_action")
+		depth += 1
 	return null
 
 
@@ -202,6 +211,8 @@ func _on_unit_child_entered(node):
 	var target = node.get("target_unit")
 	if target == null or not is_instance_valid(target):
 		return
+	_aim_target = target
+	_aim_until = Time.get_ticks_msec() + 2500
 	_fire.call_deferred(target)
 
 

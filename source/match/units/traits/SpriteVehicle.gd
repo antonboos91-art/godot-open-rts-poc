@@ -190,6 +190,14 @@ func _fire(target):
 	var weapon = String(_meta.get("weapon", "cannon"))
 	if weapon == "none":
 		return
+	# Waffe vor dem Schuss genau auf das Ziel ausrichten, damit der Schuss aus dem Rohr in Schussrichtung kommt
+	var to_t = target.global_position - _unit.global_position
+	to_t.y = 0.0
+	if to_t.length() > 0.05:
+		if _has_turret:
+			_turret_yaw = wrapf(atan2(-to_t.x, -to_t.z) - _hull_yaw(), -PI, PI)
+		else:
+			_unit.look_at(_unit.global_position + to_t, Vector3.UP)
 	var aim_yaw = _hull_yaw() + (_turret_yaw if _has_turret else 0.0)
 	var dir = Vector3(-sin(aim_yaw), 0, -cos(aim_yaw))
 	var side = Vector3(cos(aim_yaw), 0, -sin(aim_yaw))
