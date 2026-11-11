@@ -3,15 +3,18 @@
 ## Felder zwischen den Spielern und ein reiches Zentrumsfeld. Gleiches Ergebnis auf allen Rechnern.
 extends RefCounted
 
+const Heights = preload("res://source/match/Heights.gd")
+
 const RESOURCE_A = preload("res://source/match/units/non-player/ResourceA.tscn")
 const RESOURCE_B = preload("res://source/match/units/non-player/ResourceB.tscn")
 
 ## Mindestabstand zwischen zwei Knoten (Hindernisradius 0,6 + Platz zum Abbauen)
-const MIN_SPACING = 3.0
+const MIN_SPACING = 3.6
 const BASE_A = 10
 const BASE_B = 3
-const BASE_RADIUS_MIN = 10.5
-const BASE_RADIUS_MAX = 16.0
+const BASE_ARC_RADIUS = 13.0
+const EXPANSION_ARC_RADIUS = 7.5
+const CENTER_ARC_RADIUS = 10.5
 const EXPANSION_A = 8
 const EXPANSION_B = 2
 const EXPANSION_DISTANCE = 30.0
@@ -36,15 +39,13 @@ static func populate(map):
 	var center = map.size / 2.0
 	var counter = [0]
 	for spawn in spawns:
-		var inward = (center - spawn).normalized()
-		_scatter(holder, rng, taken, counter, spawn, BASE_RADIUS_MIN, BASE_RADIUS_MAX, BASE_A, BASE_B, map, inward)
-	for spawn in spawns:
-		var field = spawn + (center - spawn).normalized() * EXPANSION_DISTANCE
-		field = _clamped(field, map)
-		if _near_spawn(field, spawns, SPAWN_CLEARANCE):
-			continue
-		_scatter(holder, rng, taken, counter, field, 0.0, 6.5, EXPANSION_A, EXPANSION_B, map, Vector2.ZERO)
-	_scatter(holder, rng, taken, counter, center, 0.0, 8.0, CENTER_A, CENTER_B, map, Vector2.ZERO)
+		# Mineralienlinie hinter der Zentrale (von der Kartenmitte weg), Kristalle am Ende des Bogens
+		var outward = (spawn - center).normalized()
+		_arc(holder, rng, taken, counter, spawn, BASE_ARC_RADIUS, outward.angle(), BASE_A, BASE_B, map)
+	for field in _expansion_points(map, spawns, center):
+		# Bogen um den Zentralen-Platz, offen zur Kartenmitte
+		_arc(holder, rng, taken, counter, field, EXPANSION_ARC_RADIUS, (field - center).normalized().angle(), EXPANSION_A, EXPANSION_B, map)
+	_arc(holder, rng, taken, counter, center, CENTER_ARC_RADIUS, 0.0, CENTER_A, CENTER_B, map)
 
 
 static func _collect_existing(node, taken):
@@ -82,28 +83,64 @@ static func _free(point, taken, map):
 	return true
 
 
-## Verteilt count_a Kristall-A- und count_b Kristall-B-Knoten im Ring um "origin".
-## "prefer" (Richtung) bevorzugt die Seite zur Kartenmitte, damit die Zentrale nicht zugestellt wird.
-static func _scatter(holder, rng, taken, counter, origin, r_min, r_max, count_a, count_b, map, prefer):
-	var wanted = []
-	for i in count_a:
-		wanted.append("a")
-	for i in count_b:
-		wanted.append("b")
-	for kind in wanted:
-		for attempt in 60:
-			var angle = rng.randf() * TAU
-			if prefer != Vector2.ZERO and attempt < 40:
-				angle = prefer.angle() + rng.randf_range(-1.7, 1.7)
-			var radius = rng.randf_range(r_min, r_max)
-			var point = origin + Vector2(cos(angle), sin(angle)) * radius
-			if not _free(point, taken, map):
-				continue
-			taken.append(point)
-			var node = (RESOURCE_A if kind == "a" else RESOURCE_B).instantiate()
-			counter[0] += 1
-			node.name = "Field%s%d" % [kind.to_upper(), counter[0]]
-			node.position = Vector3(point.x, 0.0, point.y)
-			node.rotation.y = rng.randf() * TAU
-			holder.add_child(node)
-			break
+## Legt Knoten entlang eines Bogens um "origin" (wie die Mineralienlinien in SC1): jeder Knoten ist
+## von außen erreichbar, keiner liegt eingekesselt. center_angle ist die Mitte des Bogens.
+static func _arc(holder, rng, taken, counter, origin, radius, center_angle, count_a, count_b, map):
+	var origin_height = Heights.at(origin.x, origin.y)
+	var total = count_a + count_b
+	var step = 2.0 * asin(min(1.0, MIN_SPACING * 1.03 / (2.0 * radius)))
+	var full_circle = step * total >= TAU
+	if full_circle:
+		step = TAU / total
+	var first = center_angle - step * (total - 1) / 2.0
+	for i in total:
+		var kind = "a" if i < count_a else "b"
+		var angle = first + step * i
+		var point = origin + Vector2(cos(angle), sin(angle)) * radius
+		if not _free(point, taken, map):
+			continue
+		if Heights.active and abs(Heights.at(point.x, point.y) - origin_height) > 0.25:
+			continue
+		taken.append(point)
+		var node = (RESOURCE_A if kind == "a" else RESOURCE_B).instantiate()
+		counter[0] += 1
+		node.name = "Field%s%d" % [kind.to_upper(), counter[0]]
+		node.position = Vector3(point.x, Heights.at(point.x, point.y), point.y)
+		node.rotation.y = rng.randf() * TAU
+		holder.add_child(node)
+
+
+## Orte der Expansionsfelder. Kleine Karten: eines je Spieler zur Mitte hin. Große Karten
+## mit Plateaus: drei je Spieler (nah, links, rechts) plus eines zwischen je zwei Nachbarn, alle im
+## Tiefland außerhalb der Plateaus und der Rampenausläufe.
+static func _expansion_points(map, spawns, center):
+	var points = []
+	var big = Heights.active
+	var distance = EXPANSION_DISTANCE if not big else max(EXPANSION_DISTANCE, min(map.size.x, map.size.y) * 0.2)
+	for spawn in spawns:
+		var inward = (center - spawn).normalized()
+		var angles = [0.0] if not big else [0.0, 0.9, -0.9]
+		for angle in angles:
+			var field = _clamped(spawn + inward.rotated(angle) * distance, map)
+			if _acceptable_field(field, spawns, points):
+				points.append(field)
+	if big:
+		for i in spawns.size():
+			var mid = (spawns[i] + spawns[(i + 1) % spawns.size()]) / 2.0
+			var outward = (mid - center).normalized()
+			var field = _clamped(mid + outward * 8.0, map)
+			if _acceptable_field(field, spawns, points):
+				points.append(field)
+	return points
+
+
+static func _acceptable_field(field, spawns, points):
+	var clearance = SPAWN_CLEARANCE if not Heights.active else 46.0
+	if _near_spawn(field, spawns, clearance):
+		return false
+	if Heights.active and Heights.at(field.x, field.y) > 0.2:
+		return false
+	for other in points:
+		if field.distance_to(other) < 22.0:
+			return false
+	return true

@@ -15,7 +15,7 @@ func _process(_delta):
 func _ready():
 	_target_unit.tree_exited.connect(queue_free)
 	_target_position = (
-		_target_unit.global_position_yless
+		_target_unit.global_position
 		+ (
 			(_unit.global_position_yless - _target_unit.global_position_yless).normalized()
 			* _target_unit.radius

@@ -3,6 +3,8 @@ extends Camera3D
 const EXPECTED_X_ROTATION_DEGREES = -30.0
 const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 
+const Heights = preload("res://source/match/Heights.gd")
+
 @export_group("Size")
 @export var size_min = 1
 @export var size_max = 30
@@ -55,6 +57,10 @@ func set_position_safely(target_position: Vector3):
 
 
 func get_ray_intersection(mouse_pos: Vector2) -> Variant:
+	if Heights.active:
+		var hit = Heights.ray_intersection(project_ray_origin(mouse_pos), project_ray_normal(mouse_pos))
+		if hit != null:
+			return hit
 	return get_ray_intersection_with_plane(mouse_pos, reference_plane_for_rotation)
 
 

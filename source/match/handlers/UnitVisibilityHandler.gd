@@ -6,6 +6,8 @@ const Structure = preload("res://source/match/units/Structure.gd")
 
 var _units_processed_at_least_once = {}
 var _structure_to_dummy_mapping = {}
+const Heights = preload("res://source/match/Heights.gd")
+
 var _orphaned_dummies = []
 
 
@@ -50,6 +52,7 @@ func _recalculate_unit_visibility(unit, revealed_units = null):
 		if (
 			revealed_unit.is_revealing()
 			and revealed_unit.sight_range != null
+			and Heights.can_see_node(revealed_unit, unit)
 			and (
 				(revealed_unit.global_position * Vector3(1, 0, 1)).distance_to(
 					unit.global_position * Vector3(1, 0, 1)

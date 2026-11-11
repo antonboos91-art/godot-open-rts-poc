@@ -3,6 +3,7 @@ extends "res://source/match/units/actions/Action.gd"
 const AttackingWhileInRange = preload("res://source/match/units/actions/AttackingWhileInRange.gd")
 const Factions = preload("res://source/match/factions/Factions.gd")
 const AutoAttacking = preload("res://source/match/units/actions/AutoAttacking.gd")
+const Heights = preload("res://source/match/Heights.gd")
 
 const REFRESH_INTERVAL = 1.0 / 60.0 * 10.0
 
@@ -34,6 +35,7 @@ func _get_units_to_attack():
 				not unit.player.is_ally_of(_unit.player)
 				and not Factions.is_hidden_from(unit, _unit.player)
 				and unit.movement_domain in _unit.attack_domains
+				and Heights.can_see_node(_unit, unit)
 				and (
 					_unit.global_position_yless.distance_to(unit.global_position_yless)
 					<= _unit.sight_range

@@ -3,6 +3,8 @@
 ## Der Host würfelt und prüft das Einsammeln; alle Rechner zeigen die Kisten per RPC.
 extends Node3D
 
+const Heights = preload("res://source/match/Heights.gd")
+
 const FIRST_DELAY_S = 40.0
 const INTERVAL_MIN_S = 45.0
 const INTERVAL_MAX_S = 75.0
@@ -90,7 +92,7 @@ func _is_free(point):
 func _create(id, point, kind):
 	var holder = Node3D.new()
 	holder.name = "Crate%d" % id
-	holder.position = point
+	holder.position = Vector3(point.x, Heights.at(point.x, point.z), point.z)
 	var mesh = MeshInstance3D.new()
 	var box = BoxMesh.new()
 	box.size = Vector3(0.9, 0.7, 0.9)

@@ -85,10 +85,14 @@ func _enter_state(state):
 			add_child(_sub_action)
 			_unit.action_updated.emit()
 		State.COLLECTING:
-			assert(
-				CollectingResourcesWhileInRange.is_applicable(_unit, _resource_unit),
-				"the action should apply at this point"
-			)
+			# Knoten schon weg oder zu weit (z. B. leergeräumt, während der Sammler ankam): Aktion beenden,
+			# der Sammler sucht sich selbst einen neuen Knoten
+			if (
+				not is_instance_valid(_resource_unit)
+				or not CollectingResourcesWhileInRange.is_applicable(_unit, _resource_unit)
+			):
+				queue_free()
+				return
 			_sub_action = CollectingResourcesWhileInRange.new(_resource_unit)
 			_sub_action.tree_exited.connect(_on_sub_action_finished, CONNECT_DEFERRED)
 			add_child(_sub_action)

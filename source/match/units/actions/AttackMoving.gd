@@ -4,6 +4,7 @@ extends "res://source/match/units/actions/Action.gd"
 
 const AutoAttacking = preload("res://source/match/units/actions/AutoAttacking.gd")
 const Factions = preload("res://source/match/factions/Factions.gd")
+const Heights = preload("res://source/match/Heights.gd")
 const Moving = preload("res://source/match/units/actions/Moving.gd")
 
 const SCAN_INTERVAL = 0.25
@@ -66,6 +67,7 @@ func _scan():
 			other.player.is_ally_of(_unit.player)
 			or Factions.is_hidden_from(other, _unit.player)
 			or not other.movement_domain in _unit.attack_domains
+			or not Heights.can_see_node(_unit, other)
 		):
 			continue
 		var distance = _unit.global_position_yless.distance_to(other.global_position_yless)

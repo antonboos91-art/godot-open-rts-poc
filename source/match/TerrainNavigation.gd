@@ -1,5 +1,6 @@
 extends Node3D
 
+const Heights = preload("res://source/match/Heights.gd")
 const DOMAIN = Constants.Match.Navigation.Domain.TERRAIN
 
 var _earliest_frame_to_perform_next_rebake = null
@@ -42,7 +43,7 @@ func bake(map):
 	# setting custom AABB for baking so that height of dynamic AABB is always the same
 	# - without such setting, re-baking may yield different results depending on geometry height
 	_navigation_region.navigation_mesh.filter_baking_aabb = AABB(
-		Vector3.ZERO, Vector3(map.size.x, 5.0, map.size.y)
+		Vector3.ZERO, Vector3(map.size.x, 5.0 + Heights.max_height(), map.size.y)
 	)
 	NavigationServer3D.parse_source_geometry_data(
 		_navigation_region.navigation_mesh, _map_geometry, get_tree().root

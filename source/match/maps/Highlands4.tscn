@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" uid="uid://b7c1crf36x1li" path="res://source/match/Map.tscn" id="1_map"]
+
+[node name="Map" instance=ExtResource("1_map")]
+generated_players = 4
+size = Vector2(240, 240)

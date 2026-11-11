@@ -3,6 +3,7 @@
 extends RefCounted
 
 const Watchtower = preload("res://source/match/Watchtower.gd")
+const Heights = preload("res://source/match/Heights.gd")
 
 const OFFSET_FRACTION = 0.27
 
@@ -24,5 +25,5 @@ static func populate(map):
 		tower.name = "Watchtower%d" % index
 		index += 1
 		var point = center + direction * map.size * OFFSET_FRACTION
-		tower.position = Vector3(point.x, 0.0, point.y)
+		tower.position = Vector3(point.x, Heights.at(point.x, point.y), point.y)
 		holder.add_child(tower)

@@ -9,6 +9,7 @@ const PLAYER_TO_ATTACK_SWITCHING_DELAY_S = 0.5
 class Actions:
 	const MovingToUnit = preload("res://source/match/units/actions/MovingToUnit.gd")
 	const AutoAttacking = preload("res://source/match/units/actions/AutoAttacking.gd")
+	const AttackMoving = preload("res://source/match/units/actions/AttackMoving.gd")
 
 
 var _expected_number_of_units = null
@@ -86,6 +87,10 @@ func _attack_next_adversary_unit():
 				else:
 					attached_unit.action = Actions.MovingToUnit.new(target_unit)
 			return
+	# Ziele, die vom Boden aus nicht zu sehen sind (Plateau): Angriffs-Marsch zum nächsten Gegner,
+	# unterwegs wird alles Sichtbare angegriffen. Danach sucht die Gruppe sich das nächste Ziel.
+	if _march_towards_nearest(adversary_units_sorted_by_distance):
+		return
 	# if not possible to attack remaining units:
 	_attack_next_player()
 
@@ -111,3 +116,45 @@ func _on_target_unit_died():
 	if not is_inside_tree():
 		return
 	_attack_next_adversary_unit()
+
+
+const MARCH_CHECK_INTERVAL_S = 2.5
+var _march_timer = null
+
+
+func _march_towards_nearest(sorted_targets):
+	if sorted_targets.is_empty() or _attached_units.is_empty():
+		return false
+	var target_position = sorted_targets[0]["unit"].global_position
+	var marchers = _attached_units.filter(
+		func(unit): return Actions.AttackMoving.is_applicable(unit)
+	)
+	if marchers.is_empty():
+		return false
+	for unit in marchers:
+		unit.action = Actions.AttackMoving.new(target_position)
+	if _march_timer == null:
+		_march_timer = Timer.new()
+		_march_timer.wait_time = MARCH_CHECK_INTERVAL_S
+		_march_timer.timeout.connect(_on_march_timer)
+		add_child(_march_timer)
+		_march_timer.start()
+	return true
+
+
+## Beim Marsch neu bewerten: Ist die Gruppe angekommen (oder untätig), sucht sie ein neues Ziel.
+func _on_march_timer():
+	if not is_inside_tree() or _state != State.ATTACKING or _attached_units.is_empty():
+		return
+	var busy = _attached_units.any(
+		func(unit):
+			return (
+				unit.action != null
+				and (
+					unit.action.get_script() == Actions.AutoAttacking
+					or unit.action.get_script() == Actions.AttackMoving
+				)
+			)
+	)
+	if not busy:
+		_attack_next_adversary_unit()

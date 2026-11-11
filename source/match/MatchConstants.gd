@@ -15,6 +15,18 @@ const MAPS = {
 		"players": 8,
 		"size": Vector2i(170, 170),
 	},
+	"res://source/match/maps/Highlands4.tscn":
+	{
+		"name": "Hochland (4 Spieler, 240 m, Plateaus)",
+		"players": 4,
+		"size": Vector2i(240, 240),
+	},
+	"res://source/match/maps/Highlands8.tscn":
+	{
+		"name": "Hochland (8 Spieler, 400 m, Plateaus)",
+		"players": 8,
+		"size": Vector2i(400, 400),
+	},
 }
 
 
@@ -28,7 +40,7 @@ class Navigation:
 
 
 class Air:
-	const Y = 1.5
+	const Y = 6.0  # hoch genug fuer Plateaus (Heights.gd)
 	const PLANE = Plane(Vector3.UP, Y)
 
 	class Navmesh:
@@ -280,7 +292,7 @@ class Units:
 		"res://source/match/units/AntiAirTurret.tscn":
 		"res://source/match/units/projectiles/Rocket.tscn"
 	}
-	const ADHERENCE_MARGIN_M = 0.3  # TODO: try lowering while fixing a 'push' problem
+	const ADHERENCE_MARGIN_M = 0.9  # TODO: try lowering while fixing a 'push' problem
 	const NEW_RESOURCE_SEARCH_RADIUS_M = 30
 	const MOVING_UNIT_RADIUS_MAX_M = 1.0
 	const EMPTY_SPACE_RADIUS_SURROUNDING_STRUCTURE_M = MOVING_UNIT_RADIUS_MAX_M * 2.5

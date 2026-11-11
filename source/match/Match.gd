@@ -1,6 +1,7 @@
 extends Node3D
 
 const Unit = preload("res://source/match/units/Unit.gd")
+const Heights = preload("res://source/match/Heights.gd")
 const Structure = preload("res://source/match/units/Structure.gd")
 const Player = preload("res://source/match/players/Player.gd")
 const Human = preload("res://source/match/players/human/Human.gd")
@@ -604,6 +605,8 @@ func _setup_and_spawn_unit(unit, a_transform, player, mark_structure_under_const
 	if unit.variant == "" and Factions.faction_of(player) != Factions.CORE:
 		# Szenen von KI und Startaufstellung: Standard-Variante des Volks
 		unit.variant = Factions.variant_for_player(player, unit.scene_file_path)
+	if Heights.active and not unit.type in ["Drone", "Helicopter"]:
+		a_transform.origin.y = Heights.at_vec(a_transform.origin)
 	unit.global_transform = a_transform
 	if unit is Structure and mark_structure_under_construction:
 		unit.mark_as_under_construction()

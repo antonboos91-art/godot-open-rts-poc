@@ -4,6 +4,7 @@
 ## "terrain_navigation_input"); der Randwald ausserhalb ist nur Optik.
 extends RefCounted
 
+const Heights = preload("res://source/match/Heights.gd")
 const DIR = "res://assets/sprites/nature/"
 const TREES = ["dead_a", "dead_b", "burnt_a", "burnt_b", "pine_a", "pine_b", "oak_a", "dead_a", "burnt_a"]
 const ROCKS = ["rock_a", "rock_b", "rock_c", "rock_a", "wreck_a"]
@@ -49,13 +50,13 @@ static func populate(map):
 		z += step * rng.randf_range(0.7, 1.2)
 	# Randstreifen innen: lockere Baeume mit Kollision
 	var area = map.size.x * map.size.y
-	for i in int(area / 90.0):
+	for i in mini(int(area / 90.0), 900):
 		var edge_pos = _random_edge_position(map, rng, 3.5)
 		if _clear(edge_pos, keep_out, placed, 1.4):
 			placed.append(edge_pos)
 			_add_tree(holder, edge_pos, rng, true)
 	# Waldstuecke im Inneren
-	var forests = max(2, int(area / 450.0))
+	var forests = clampi(int(area / 450.0), 2, 70)
 	var attempts = 0
 	var made = 0
 	while made < forests and attempts < 200:
@@ -89,6 +90,12 @@ static func _keep_out_points(map):
 	if spawn_points != null:
 		for marker in spawn_points.get_children():
 			points.append([Vector2(marker.position.x, marker.position.z), SPAWN_CLEARANCE])
+	# Rampen und ihre Ausläufe bleiben frei von Bäumen (sonst sperren sie den Weg zur Basis)
+	for plateau in Heights.plateaus:
+		var run = plateau["radius"]
+		while run < plateau["radius"] + Heights.RAMP_LENGTH_M + 12.0:
+			points.append([plateau["center"] + plateau["ramp_dir"] * run, 8.0])
+			run += 4.0
 	var objectives = map.find_child("Objectives", false, false)
 	if objectives != null:
 		for tower in objectives.get_children():
@@ -101,6 +108,8 @@ static func _keep_out_points(map):
 
 
 static func _clear(pos, keep_out, placed, spacing):
+	if Heights.active and Heights.at(pos.x, pos.y) > 0.15:
+		return false
 	for entry in keep_out:
 		if pos.distance_to(entry[0]) < entry[1]:
 			return false
@@ -139,7 +148,7 @@ static func _add_tree(holder, pos, rng, solid):
 		shape.shape = cyl
 		shape.position.y = 1.0
 		body.add_child(shape)
-		body.position = Vector3(pos.x, 0, pos.y)
+		body.position = Vector3(pos.x, Heights.at(pos.x, pos.y), pos.y)
 		body.add_to_group("terrain_navigation_input")
 		holder.add_child(body)
 	return sprite
@@ -152,7 +161,7 @@ static func _add_sprite(holder, pos, name, size, rng, solid):
 	quad.center_offset = Vector3(0, size * (FOOT_FRAC - 0.5), 0)
 	sprite.mesh = quad
 	sprite.material_override = _material(name)
-	sprite.position = Vector3(pos.x, 0, pos.y)
+	sprite.position = Vector3(pos.x, Heights.at(pos.x, pos.y), pos.y)
 	sprite.scale = Vector3(-1 if rng.randf() < 0.5 else 1, 1, 1)
 	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	sprite.extra_cull_margin = size
@@ -169,7 +178,7 @@ static func _add_sprite(holder, pos, name, size, rng, solid):
 		shape.shape = cyl
 		shape.position.y = 0.75
 		body.add_child(shape)
-		body.position = Vector3(pos.x, 0, pos.y)
+		body.position = Vector3(pos.x, Heights.at(pos.x, pos.y), pos.y)
 		body.add_to_group("terrain_navigation_input")
 		holder.add_child(body)
 	return sprite

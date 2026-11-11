@@ -1,6 +1,7 @@
 extends "res://source/match/units/actions/Action.gd"
 
 const Factions = preload("res://source/match/factions/Factions.gd")
+const Heights = preload("res://source/match/Heights.gd")
 const AttackingWhileInRange = preload("res://source/match/units/actions/AttackingWhileInRange.gd")
 const FollowingToReachDistance = preload(
 	"res://source/match/units/actions/FollowingToReachDistance.gd"
@@ -18,6 +19,7 @@ static func is_applicable(source_unit, target_unit):
 		and not source_unit.player.is_ally_of(target_unit.player)
 		and not Factions.is_hidden_from(target_unit, source_unit.player)
 		and target_unit.movement_domain in source_unit.attack_domains
+		and Heights.can_see_node(source_unit, target_unit)
 	)
 
 

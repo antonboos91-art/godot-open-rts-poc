@@ -151,7 +151,7 @@ func _run():
 
 	# Bau-Mobil entfaltet sich zur Zentrale
 	var hqs_before = _own(me).filter(func(u): return u.variant == "shibas/hq").size()
-	var mcv = _spawn_unit(me, "shibas/baumobil", hq.global_position + Vector3(-11, 0, -8))
+	var mcv = _spawn_unit(me, "shibas/baumobil", _free_point(hq.global_position + Vector3(14, 0, -4)))
 	await _frames(3)
 	_match.send_command("deploy", [mcv])
 	await _frames(5)
@@ -455,3 +455,25 @@ func _check(condition, label):
 func _finish():
 	print("factions_test: %s" % ("OK" if _failures == 0 else "%d FAILED" % _failures))
 	quit(_failures)
+
+
+## Ein freier Punkt in der Nähe (keine Rohstoffknoten, Gebäude oder Einheiten ringsum).
+func _free_point(near, clearance = 10.0):
+	for radius in range(0, 60, 3):
+		for step in 12:
+			var angle = TAU * step / 12.0
+			var candidate = near + Vector3(cos(angle), 0, sin(angle)) * radius
+			var blocked = false
+			for node in get_nodes_in_group("resource_units"):
+				if node.global_position.distance_to(candidate) < clearance:
+					blocked = true
+					break
+			if blocked:
+				continue
+			for unit in get_nodes_in_group("units"):
+				if unit.global_position.distance_to(candidate) < clearance:
+					blocked = true
+					break
+			if not blocked:
+				return candidate
+	return near

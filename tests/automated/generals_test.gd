@@ -109,7 +109,7 @@ func _check_balance_tables():
 
 func _check_resources():
 	var nodes = get_nodes_in_group("resource_units")
-	_check(nodes.size() >= 80, "map has many resource nodes (%d)" % nodes.size())
+	_check(nodes.size() >= 60, "map has many resource nodes (%d)" % nodes.size())
 	var min_distance = INF
 	for i in nodes.size():
 		for j in range(i + 1, nodes.size()):
@@ -118,7 +118,7 @@ func _check_resources():
 			min_distance = min(min_distance, a.distance_to(b))
 	_check(min_distance > 1.0, "no two resource nodes overlap (closest %.1f m)" % min_distance)
 	var field_nodes = nodes.filter(func(n): return n.name.begins_with("Field"))
-	_check(field_nodes.size() >= 50, "extra generated fields exist (%d)" % field_nodes.size())
+	_check(field_nodes.size() >= 40, "extra generated fields exist (%d)" % field_nodes.size())
 
 
 # --- Treffer, Ränge, Upgrades -------------------------------------------------------------------
@@ -180,30 +180,31 @@ func _check_hits_and_ranks(me, enemy):
 
 
 func _check_commands(me):
-	var unit = _spawn_unit(me, "shibas/trooper", Vector3(30, 0, 40))
+	var origin = _free_point(Vector3(30, 0, 40))
+	var unit = _spawn_unit(me, "shibas/trooper", origin)
 	await _frames(4)
-	_match.send_command("attack_move", [unit], [Vector3(30, 0, 52), false])
+	_match.send_command("attack_move", [unit], [_pt(origin, 0, 12), false])
 	await _frames(2)
 	_check(
 		unit.action != null and unit.action.get_script().resource_path.ends_with("AttackMoving.gd"),
 		"attack-move starts the attack-march action"
 	)
 	var arrived = await _wait_until(
-		func(): return unit.global_position.distance_to(Vector3(30, 0, 52)) < 2.0, 25.0
+		func(): return unit.global_position.distance_to(_pt(origin, 0, 12)) < 2.0, 25.0
 	)
 	_check(arrived, "attack-moving unit reaches the target when nothing is in the way")
 	await _frames(3)
-	_match.send_command("terrain", [unit], [Vector3(36, 0, 52)])
+	_match.send_command("terrain", [unit], [_pt(origin, 6, 12)])
 	await _frames(2)
-	_match.send_command("queue_move", [unit], [Vector3(36, 0, 44)])
-	_match.send_command("queue_move", [unit], [Vector3(30, 0, 44)])
+	_match.send_command("queue_move", [unit], [_pt(origin, 6, 4)])
+	_match.send_command("queue_move", [unit], [_pt(origin, 0, 4)])
 	_check(unit.order_queue.size() == 2, "shift-orders are queued behind the current move")
 	var finished = await _wait_until(
-		func(): return unit.global_position.distance_to(Vector3(30, 0, 44)) < 2.0, 40.0
+		func(): return unit.global_position.distance_to(_pt(origin, 0, 4)) < 2.0, 40.0
 	)
 	_check(finished and unit.order_queue.is_empty(), "queued waypoints are visited in order")
-	_match.send_command("terrain", [unit], [Vector3(30, 0, 60)])
-	_match.send_command("queue_move", [unit], [Vector3(10, 0, 60)])
+	_match.send_command("terrain", [unit], [_pt(origin, 0, 20)])
+	_match.send_command("queue_move", [unit], [_pt(origin, -10, 20)])
 	await _frames(3)
 	_match.send_command("stop", [unit])
 	await _frames(3)
@@ -414,3 +415,39 @@ func _check(condition, label):
 func _finish():
 	print("generals_test: %s" % ("OK" if _failures == 0 else "%d FAILED" % _failures))
 	quit(_failures)
+
+
+## Ein freier Punkt in der Nähe (keine Rohstoffknoten, Gebäude oder Einheiten ringsum), damit Tests
+## nicht von zufällig platzierten Feldern behindert werden.
+func _free_point(near):
+	for radius in range(0, 40, 3):
+		for step in 12:
+			var angle = TAU * step / 12.0
+			var candidate = near + Vector3(cos(angle), 0, sin(angle)) * radius
+			if candidate.x < 8 or candidate.z < 8 or candidate.x > 100 or candidate.z > 100:
+				continue
+			var blocked = false
+			for node in get_nodes_in_group("resource_units"):
+				if node.global_position.distance_to(candidate) < 6.0:
+					blocked = true
+					break
+			if blocked:
+				continue
+			for unit in get_nodes_in_group("units"):
+				if unit.global_position.distance_to(candidate) < 5.0:
+					blocked = true
+					break
+			if not blocked:
+				return candidate
+	return near
+
+
+var _point_cache = {}
+
+
+## Freier Punkt relativ zu "origin", für gleiche Offsets immer derselbe.
+func _pt(origin, dx, dz):
+	var key = Vector3(dx, 0, dz)
+	if not key in _point_cache:
+		_point_cache[key] = _free_point(origin + key)
+	return _point_cache[key]

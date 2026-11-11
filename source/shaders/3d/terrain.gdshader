@@ -54,9 +54,11 @@ float fbm(vec2 p) {
 }
 
 varying vec3 world_pos;
+varying float slope;
 
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	slope = 1.0 - clamp(NORMAL.y, 0.0, 1.0);
 }
 
 // Zwei Abtastungen (unterschiedlicher Massstab, gedreht) gegen sichtbare Kachel-Wiederholung
@@ -91,6 +93,11 @@ void fragment() {
 	nrm = mix(nrm, sample2(rock_normal, uv_a, uv_b, k).rgb, w_rock);
 	col = mix(col, sample2(mud_albedo, uv_a, uv_b, k).rgb, w_mud);
 	nrm = mix(nrm, sample2(mud_normal, uv_a, uv_b, k).rgb, w_mud);
+
+	// Klippen und steile Hänge: nackter Fels
+	float w_cliff = smoothstep(0.1, 0.32, slope);
+	col = mix(col, sample2(rock_albedo, uv_a, uv_b, k).rgb * 0.8, w_cliff);
+	nrm = mix(nrm, sample2(rock_normal, uv_a, uv_b, k).rgb, w_cliff);
 
 	// grossflaechige Helligkeitsvariation
 	col *= (0.85 + 0.3 * fbm(p * 0.04 + 9.0)) * brightness;

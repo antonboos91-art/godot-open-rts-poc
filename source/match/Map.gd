@@ -7,7 +7,10 @@ const EXTRA_MARGIN = 14
 const NatureScatter = preload("res://source/match/NatureScatter.gd")
 const ResourceFields = preload("res://source/match/ResourceFields.gd")
 const MapObjectives = preload("res://source/match/MapObjectives.gd")
+const MapLayout = preload("res://source/match/MapLayout.gd")
 
+## > 0: Startpositionen, Plateaus und Gelände werden zur Laufzeit erzeugt (MapLayout.gd)
+@export var generated_players = 0
 @export var size = Vector2(50, 50):
 	set(a_size):
 		size = a_size
@@ -24,6 +27,7 @@ const MapObjectives = preload("res://source/match/MapObjectives.gd")
 
 func _ready():
 	if not Engine.is_editor_hint():
+		MapLayout.populate(self)
 		ResourceFields.populate(self)
 		MapObjectives.populate(self)
 		NatureScatter.populate(self)
