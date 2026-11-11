@@ -26,7 +26,7 @@ static func attach(unit, radius):
 
 func _ready():
 	_dust = _make_emitter(Color(0.62, 0.52, 0.38, 0.55), Color(0.62, 0.52, 0.38, 0.0), 1.6, 0.9, 0.5, 0.9, 1.4, 0.5, Vector3(0, 0.25, 0))
-	_smoke = _make_emitter(Color(0.12, 0.12, 0.12, 0.7), Color(0.25, 0.25, 0.25, 0.0), 2.6, 1.0, 0.7, 1.4, 1.8, 0.7, Vector3(0, 1.0, 0))
+	_smoke = _make_emitter(Color(0.3, 0.3, 0.3, 0.45), Color(0.45, 0.45, 0.45, 0.0), 2.6, 1.0, 0.7, 1.4, 1.8, 0.7, Vector3(0, 1.0, 0))
 	_fire = _make_emitter(Color(1.0, 0.65, 0.15, 0.95), Color(0.9, 0.15, 0.05, 0.0), 0.7, 0.8, 0.5, 1.0, 1.0, 0.25, Vector3(0, 1.6, 0))
 	_fire.mesh.material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	_smoke.position.y = 1.2

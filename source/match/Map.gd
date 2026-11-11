@@ -3,7 +3,7 @@ extends Node3D
 
 # TODO: add editor-only 2nd pass shader to 'Terrain' mesh highlighting map boundries
 
-const EXTRA_MARGIN = 2
+const EXTRA_MARGIN = 14
 const NatureScatter = preload("res://source/match/NatureScatter.gd")
 
 @export var size = Vector2(50, 50):

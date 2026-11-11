@@ -1,7 +1,31 @@
-[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://co8vfcoqqs5i8"]
+[gd_resource type="ShaderMaterial" load_steps=14 format=3 uid="uid://co8vfcoqqs5i8"]
 
 [ext_resource type="Shader" path="res://source/shaders/3d/terrain.gdshader" id="1_terrain"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/grass_albedo.jpg" id="2_ga"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/grass_normal.png" id="3_gn"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/drygrass_albedo.jpg" id="4_da"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/drygrass_normal.png" id="5_dn"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/dirt_albedo.jpg" id="6_ea"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/dirt_normal.png" id="7_en"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/rock_albedo.jpg" id="8_ra"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/rock_normal.png" id="9_rn"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/sand_albedo.jpg" id="10_sa"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/sand_normal.png" id="11_sn"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/mud_albedo.jpg" id="12_ma"]
+[ext_resource type="Texture2D" path="res://assets/textures/ground/mud_normal.png" id="13_mn"]
 
 [resource]
 shader = ExtResource("1_terrain")
 shader_parameter/map_size = Vector2(50, 50)
+shader_parameter/grass_albedo = ExtResource("2_ga")
+shader_parameter/grass_normal = ExtResource("3_gn")
+shader_parameter/drygrass_albedo = ExtResource("4_da")
+shader_parameter/drygrass_normal = ExtResource("5_dn")
+shader_parameter/dirt_albedo = ExtResource("6_ea")
+shader_parameter/dirt_normal = ExtResource("7_en")
+shader_parameter/rock_albedo = ExtResource("8_ra")
+shader_parameter/rock_normal = ExtResource("9_rn")
+shader_parameter/sand_albedo = ExtResource("10_sa")
+shader_parameter/sand_normal = ExtResource("11_sn")
+shader_parameter/mud_albedo = ExtResource("12_ma")
+shader_parameter/mud_normal = ExtResource("13_mn")
