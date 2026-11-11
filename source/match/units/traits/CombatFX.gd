@@ -6,6 +6,7 @@
 extends RefCounted
 
 const Factions = preload("res://source/match/factions/Factions.gd")
+const BEAM_SHADER = preload("res://source/shaders/3d/beam.gdshader")
 
 const STYLE = {
 	"shibas": {"kind": "laser", "color": Color(0.35, 0.85, 1.6), "sound": "laser_shot"},
@@ -16,6 +17,7 @@ const STYLE = {
 
 static var _dot = null
 static var _ring = null
+static var _puff = null
 
 
 static func style_for(unit):
@@ -55,53 +57,72 @@ static func shot(shooter, from, to, scale = 1.0, style = null):
 			bolt(root, from, to, c, 0.12 * scale, 1.8 * scale, 55.0, 0.5 * scale)
 
 
-## Durchgehender Strahl (Laser/Phaser), blendet aus; wobble = Phaser-Flackern
+## Durchgehender Strahl (Laser/Phaser) mit Energie-Shader, blendet weich aus; wobble = Phaser-Flackern
 static func beam(root, from, to, color, width, life, wobble = false):
-	var length = from.distance_to(to)
-	if length < 0.05:
+	if from.distance_to(to) < 0.05:
 		return
-	var holder = Node3D.new()
-	root.add_child(holder)
-	holder.global_position = (from + to) * 0.5
-	holder.look_at(to, Vector3.UP if abs((to - from).normalized().y) < 0.99 else Vector3.RIGHT)
-	var core = _cylinder(width * 0.45, length, Color(1.6, 1.6, 1.6, 1.0))
-	var halo = _cylinder(width * 1.6, length, Color(color.r, color.g, color.b, 0.55))
-	holder.add_child(halo)
-	holder.add_child(core)
-	var tw = holder.create_tween()
-	if wobble:
-		tw.set_loops(int(life / 0.04))
-		tw.tween_callback(func(): halo.scale = Vector3(randf_range(0.6, 1.4), randf_range(0.6, 1.4), 1.0)).set_delay(0.04)
-	var fade = holder.create_tween()
-	fade.tween_interval(life * 0.5)
-	fade.tween_property(holder, "scale", Vector3(0.05, 0.05, 1.0), life * 0.5)
-	fade.tween_callback(holder.queue_free)
+	var mi = _beam_mesh(color, width * 4.0, 0.35 if wobble else 0.12)
+	root.add_child(mi)
+	_beam_set(mi, from, to)
+	var m = mi.material_override
+	var tw = mi.create_tween()
+	tw.tween_interval(life * 0.45)
+	tw.tween_method(func(v): m.set_shader_parameter("intensity", v), 1.0, 0.0, life * 0.55)
+	tw.tween_callback(mi.queue_free)
 
 
-## Wanderndes Leuchtgeschoss; beim Einschlag Treffer-Effekt der Groesse impact_size
+## Wanderndes Leuchtgeschoss (kurzer Energiestrahl); beim Einschlag Treffer-Effekt der Groesse impact_size
 static func bolt(root, from, to, color, width, length, speed, impact_size):
 	var dist = from.distance_to(to)
 	if dist < 0.05:
 		impact(root, to, color, impact_size)
 		return
-	var holder = Node3D.new()
-	root.add_child(holder)
-	holder.global_position = from
-	holder.look_at(to, Vector3.UP if abs((to - from).normalized().y) < 0.99 else Vector3.RIGHT)
-	var l = min(length, dist)
-	var core = _cylinder(width * 0.5, l, Color(1.7, 1.7, 1.6, 1.0))
-	var halo = _cylinder(width * 1.8, l * 1.1, Color(color.r, color.g, color.b, 0.6))
-	holder.add_child(halo)
-	holder.add_child(core)
+	var dir = (to - from) / dist
+	var mi = _beam_mesh(color, width * 4.5, 0.08)
+	root.add_child(mi)
 	var light = OmniLight3D.new()
 	light.light_color = Color(clamp(color.r, 0, 1), clamp(color.g, 0, 1), clamp(color.b, 0, 1))
 	light.light_energy = 2.0
 	light.omni_range = 2.5 + width * 10.0
-	holder.add_child(light)
-	var tw = holder.create_tween()
-	tw.tween_property(holder, "global_position", to, max(dist / speed, 0.04))
+	root.add_child(light)
+	var l = min(length, dist)
+	var tw = mi.create_tween()
+	tw.tween_method(
+		func(t):
+			var head = from.lerp(to, t)
+			var tail = head - dir * min(l, from.distance_to(head))
+			_beam_set(mi, tail, head)
+			if is_instance_valid(light):
+				light.global_position = head,
+		0.0, 1.0, max(dist / speed, 0.04)
+	)
 	tw.tween_callback(func(): impact(root, to, color, impact_size))
-	tw.tween_callback(holder.queue_free)
+	tw.tween_callback(light.queue_free)
+	tw.tween_callback(mi.queue_free)
+
+
+static func _beam_mesh(color, width, flicker):
+	var mi = MeshInstance3D.new()
+	var q = QuadMesh.new()
+	mi.mesh = q
+	mi.custom_aabb = AABB(Vector3(-5000, -100, -5000), Vector3(10000, 200, 10000))
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var m = ShaderMaterial.new()
+	m.shader = BEAM_SHADER
+	var k = max(color.r, max(color.g, color.b))
+	m.set_shader_parameter("color", Color(color.r / k, color.g / k, color.b / k, 1.0))
+	m.set_shader_parameter("energy", 1.6 * k)
+	m.set_shader_parameter("width", width)
+	m.set_shader_parameter("flicker", flicker)
+	m.set_shader_parameter("seed", randf() * 100.0)
+	mi.material_override = m
+	return mi
+
+
+static func _beam_set(mi, from, to):
+	var m = mi.material_override
+	m.set_shader_parameter("start", from)
+	m.set_shader_parameter("end", to)
 
 
 ## Mündungsblitz mit kurzem Licht
@@ -121,7 +142,7 @@ static func impact(root, at, color, size):
 
 
 ## Grosse Explosion: Feuerball, Druckwelle am Boden, Rauchsaeule, Truemmer, Funken, Brandfleck
-static func explosion(node, at, size = 1.0, color = Color(2.0, 0.9, 0.3)):
+static func explosion(node, at, size = 1.0, color = Color(1.7, 0.65, 0.18)):
 	var root = _root(node)
 	if root == null:
 		return
@@ -132,7 +153,7 @@ static func explosion(node, at, size = 1.0, color = Color(2.0, 0.9, 0.3)):
 	_particles(root, at + Vector3(0, 0.4 * size, 0), Color(color.r, color.g, color.b, 1.0), Color(1.2, 0.2, 0.05, 0.0),
 		int(44 * size), 0.45, 1.3 * size, 0.42 * size, Vector3(0, 2.2, 0), true, 180.0)
 	# heisser Kern
-	_particles(root, at + Vector3(0, 0.5 * size, 0), Color(2.5, 2.2, 1.6, 1.0), Color(2.0, 0.8, 0.2, 0.0),
+	_particles(root, at + Vector3(0, 0.5 * size, 0), Color(1.9, 1.3, 0.7, 1.0), Color(1.4, 0.5, 0.1, 0.0),
 		int(12 * size), 0.3, 0.6 * size, 0.8 * size, Vector3.ZERO, true, 180.0)
 	# Funken und gluehende Truemmer
 	_particles(root, at + Vector3(0, 0.3, 0), Color(2.4, 1.4, 0.5, 1.0), Color(1.0, 0.3, 0.05, 0.0),
@@ -230,7 +251,12 @@ static func _particles(root, at, c_start, c_end, amount, lifetime, velocity, siz
 		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	m.vertex_color_use_as_albedo = true
-	m.albedo_texture = soft_dot()
+	# grosse Partikel (Feuer, Rauch) bekommen zerfaserte Rauchwolken-Textur und drehen sich zufaellig
+	m.albedo_texture = puff_texture() if size > 0.15 else soft_dot()
+	if size > 0.15:
+		p.angle_min = 0.0
+		p.angle_max = 360.0
+		m.billboard_keep_scale = true
 	# HDR-Farben: Verlauf normieren, Helligkeit ueber albedo_color (Bloom)
 	var k = max(1.0, max(c_start.r, max(c_start.g, c_start.b)))
 	if k > 1.0:
@@ -306,6 +332,24 @@ static func soft_dot():
 		t.height = 64
 		_dot = t
 	return _dot
+
+
+## Zerfaserte Rauch-/Feuerwolke: Rauschen mit weichem runden Rand
+static func puff_texture():
+	if _puff == null:
+		var noise = FastNoiseLite.new()
+		noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		noise.frequency = 0.06
+		noise.fractal_octaves = 4
+		var img = Image.create(128, 128, false, Image.FORMAT_RGBA8)
+		for y in 128:
+			for x in 128:
+				var r = Vector2(x - 63.5, y - 63.5).length() / 64.0
+				var n = noise.get_noise_2d(x, y) * 0.5 + 0.5
+				var a = clamp((1.0 - r * 1.35) * (0.35 + n * 1.1), 0.0, 1.0)
+				img.set_pixel(x, y, Color(1, 1, 1, pow(a, 1.2)))
+		_puff = ImageTexture.create_from_image(img)
+	return _puff
 
 
 static func ring_texture():
