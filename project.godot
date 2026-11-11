@@ -30,6 +30,7 @@ Utils="*res://source/Utils.gd"
 TouchInput="*res://source/TouchInput.gd"
 SoundEffects="*res://source/SoundEffects.gd"
 MenuButtonFX="*res://source/main-menu/MenuButtonFX.gd"
+Music="*res://source/MusicPlayer.gd"
 
 [debug]
 
