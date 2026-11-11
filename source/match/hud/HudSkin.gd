@@ -241,7 +241,8 @@ func _build_bottom_bar():
 	_single_name.add_theme_color_override("font_color", _accent.lightened(0.35))
 	info.add_child(_single_name)
 	_single_hp_bar = ProgressBar.new()
-	_single_hp_bar.custom_minimum_size = Vector2(260, 12)
+	_single_hp_bar.custom_minimum_size = Vector2(320, 12)
+	_single_hp_bar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_single_hp_bar.show_percentage = false
 	_single_hp_bar.add_theme_stylebox_override("background", _box(Color(0.03, 0.05, 0.04), Color(0.2, 0.3, 0.25), 0.0, 1))
 	_single_hp_bar.add_theme_stylebox_override("fill", _box(Color(0.3, 0.95, 0.45), Color(0.3, 0.95, 0.45), 0.35, 0, Color(0.3, 1.0, 0.45)))
