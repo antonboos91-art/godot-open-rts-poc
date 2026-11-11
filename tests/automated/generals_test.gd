@@ -21,6 +21,7 @@ func _run():
 	Factions = load("res://source/match/factions/Factions.gd")
 	Constants = root.get_node("/root/Constants")
 	MatchSignals = root.get_node("/root/MatchSignals")
+	load("res://source/match/units/Facility.gd").telegraph_seconds = 0.0
 	_check_balance_tables()
 	_match = await _start_match()
 	if _match == null:

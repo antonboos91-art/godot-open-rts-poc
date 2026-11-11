@@ -32,6 +32,10 @@ var peer_id = 0
 @export var upgrade_armor = 0
 const MAX_UPGRADE_LEVEL = 3
 
+## Energie der Zentrale für die Makro-Fähigkeit (Z): wächst von allein, siehe Macro.gd
+@export var energy = 50.0
+var chrono_until_ms = 0
+
 var _color_material = null
 
 
@@ -41,7 +45,7 @@ func add_synchronizer():
 	var synchronizer = MultiplayerSynchronizer.new()
 	synchronizer.name = "ResourcesSynchronizer"
 	synchronizer.replication_config = Utils.Net.replication_config(
-		[":resource_a", ":resource_b", ":upgrade_weapons", ":upgrade_armor"]
+		[":resource_a", ":resource_b", ":upgrade_weapons", ":upgrade_armor", ":energy"]
 	)
 	add_child(synchronizer)
 
@@ -83,7 +87,10 @@ func is_low_power():
 
 
 func production_speed_factor():
-	return Constants.Match.Units.LOW_POWER_PRODUCTION_FACTOR if is_low_power() else 1.0
+	var factor = Constants.Match.Units.LOW_POWER_PRODUCTION_FACTOR if is_low_power() else 1.0
+	if Time.get_ticks_msec() < chrono_until_ms:
+		factor *= 1.5
+	return factor
 
 
 func add_resources(resources):

@@ -11,7 +11,7 @@ const STUCK_PREVENTION_WINDOW_SIZE = 10  # number of frames for accumulating dis
 const STUCK_PREVENTION_THRESHOLD = 0.3  # fraction of expected distance traveled at full speed
 const STUCK_PREVENTION_SIDE_MOVES = 15  # number of forced moves to the side if stuck
 
-const ROTATION_LOW_PASS_FILTER_ENABLED = true
+const ROTATION_LOW_PASS_FILTER_ENABLED = false  # Blizzard-Stil: Einheiten drehen ohne Traegheit
 const ROTATION_LOW_PASS_FILTER_WINDOW_SIZE = 10  # number of frames for accumulating directions
 const ROTATION_LOW_PASS_FILTER_VELOCITY_THRESHOLD = 0.01  # velocities below will be dropped
 

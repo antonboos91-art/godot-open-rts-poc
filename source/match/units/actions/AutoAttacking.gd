@@ -25,6 +25,10 @@ func _init(target_unit):
 	_target_unit = target_unit
 
 
+func get_target_unit():
+	return _target_unit
+
+
 func _ready():
 	_target_unit.tree_exited.connect(_on_target_unit_removed)
 	_attack_or_move_closer()

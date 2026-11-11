@@ -50,6 +50,11 @@ func _to_string():
 	return "{0}({1})".format([super(), str(_sub_action) if _sub_action != null else ""])
 
 
+func _exit_tree():
+	if _resource_unit != null and is_instance_valid(_resource_unit):
+		_resource_unit.set_meta("claims", max(0, _resource_unit.get_meta("claims", 0) - 1))
+
+
 func get_resource_unit():
 	return _resource_unit
 
@@ -104,6 +109,7 @@ func _set_resource_unit(resource_unit):
 	assert(resource_unit != _resource_unit, "it's not possible to set the same unit")
 	_resource_unit = resource_unit
 	_resource_unit.tree_exited.connect(_on_resource_unit_removed)
+	_resource_unit.set_meta("claims", _resource_unit.get_meta("claims", 0) + 1)
 	return true
 
 

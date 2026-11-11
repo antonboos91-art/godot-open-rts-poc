@@ -24,6 +24,7 @@ func _physics_process(_delta):
 		return
 	var all_units = get_tree().get_nodes_in_group("units")
 	var revealed_units = all_units.filter(func(unit): return unit.is_in_group("revealed_units"))
+	revealed_units += get_tree().get_nodes_in_group("vision_sources")
 	for unit in all_units:
 		_recalculate_unit_visibility(unit, revealed_units)
 	for orphaned_dummy in _orphaned_dummies:
@@ -44,6 +45,7 @@ func _recalculate_unit_visibility(unit, revealed_units = null):
 		revealed_units = get_tree().get_nodes_in_group("units").filter(
 			func(a_unit): return a_unit.is_in_group("revealed_units")
 		)
+		revealed_units += get_tree().get_nodes_in_group("vision_sources")
 	for revealed_unit in revealed_units:
 		if (
 			revealed_unit.is_revealing()
@@ -95,6 +97,7 @@ func _recalcuate_orphaned_dummy_existence(orphaned_dummy, revealed_units = null)
 		revealed_units = get_tree().get_nodes_in_group("units").filter(
 			func(unit): return unit.is_in_group("revealed_units")
 		)
+		revealed_units += get_tree().get_nodes_in_group("vision_sources")
 	for revealed_unit in revealed_units:
 		if (
 			revealed_unit.is_revealing()

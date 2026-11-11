@@ -127,3 +127,24 @@ func _finalize_production(former_queue_element):
 	var rally_point = _unit.find_child("RallyPoint")
 	if rally_point != null:
 		MatchSignals.navigate_unit_to_rally_point.emit(produced_unit, rally_point)
+	_auto_harvest(produced_unit, rally_point)
+
+
+## Neue Arbeiter ohne Sammelpunkt fangen sofort an zu sammeln (am wenigsten belegten nahen Knoten).
+func _auto_harvest(worker, rally_point):
+	if not worker.has_method("is_full") or Network.is_client():
+		return
+	var rally_set = (
+		rally_point != null
+		and (
+			rally_point.target_unit != null
+			or rally_point.global_position != rally_point.get_parent().global_position
+		)
+	)
+	if rally_set:
+		return
+	var resource = Utils.Match.Resources.find_resource_unit_closest_to_unit_yet_no_further_than(
+		_unit, Constants.Match.Units.NEW_RESOURCE_SEARCH_RADIUS_M
+	)
+	if resource != null:
+		worker.action = load("res://source/match/units/actions/CollectingResourcesSequentially.gd").new(resource)

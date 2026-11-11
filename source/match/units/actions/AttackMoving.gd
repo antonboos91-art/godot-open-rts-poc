@@ -23,6 +23,10 @@ func _init(target_position):
 	_target_position = target_position
 
 
+func get_target_position():
+	return _target_position
+
+
 func _ready():
 	var timer = Timer.new()
 	timer.wait_time = SCAN_INTERVAL

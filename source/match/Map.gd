@@ -6,6 +6,7 @@ extends Node3D
 const EXTRA_MARGIN = 14
 const NatureScatter = preload("res://source/match/NatureScatter.gd")
 const ResourceFields = preload("res://source/match/ResourceFields.gd")
+const MapObjectives = preload("res://source/match/MapObjectives.gd")
 
 @export var size = Vector2(50, 50):
 	set(a_size):
@@ -24,6 +25,7 @@ const ResourceFields = preload("res://source/match/ResourceFields.gd")
 func _ready():
 	if not Engine.is_editor_hint():
 		ResourceFields.populate(self)
+		MapObjectives.populate(self)
 		NatureScatter.populate(self)
 		_add_atmosphere()
 

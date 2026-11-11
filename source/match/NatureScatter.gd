@@ -89,6 +89,10 @@ static func _keep_out_points(map):
 	if spawn_points != null:
 		for marker in spawn_points.get_children():
 			points.append([Vector2(marker.position.x, marker.position.z), SPAWN_CLEARANCE])
+	var objectives = map.find_child("Objectives", false, false)
+	if objectives != null:
+		for tower in objectives.get_children():
+			points.append([Vector2(tower.position.x, tower.position.z), 6.0])
 	var resources = map.find_child("Resources", false, false)
 	if resources != null:
 		for res in resources.get_children():

@@ -14,6 +14,10 @@ func _init(target_position):
 	_target_position = target_position
 
 
+func get_target_position():
+	return _target_position
+
+
 func _ready():
 	_movement_trait.move(_target_position)
 	_movement_trait.movement_finished.connect(_on_movement_finished)

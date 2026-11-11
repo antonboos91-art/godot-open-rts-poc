@@ -4,6 +4,9 @@ extends "res://source/match/units/Structure.gd"
 
 const REPAIR_INTERVAL_S = 1.0
 
+## Warnzeit zwischen Zielbefehl und Einschlag (Kreis auf dem Boden); Tests setzen 0
+static var telegraph_seconds = 1.5
+
 ## Ladestand der Superwaffe [0.0..1.0]; wird vom Host an Clients gespiegelt.
 var charge_progress = 0.0
 
@@ -50,6 +53,15 @@ func fire_superweapon(target):
 	var strike = Factions.entry(Factions.variant_of(self))["strike"]
 	_charge_seconds = 0.0
 	charge_progress = 0.0
+	var match_node = find_parent("Match")
+	if telegraph_seconds > 0.0:
+		if Network.is_online():
+			match_node.show_telegraph.rpc(target, strike["radius"], telegraph_seconds)
+		else:
+			match_node.show_telegraph(target, strike["radius"], telegraph_seconds)
+		await get_tree().create_timer(telegraph_seconds).timeout
+		if not is_inside_tree():
+			return
 	var target_yless = target * Vector3(1, 0, 1)
 	for unit in get_tree().get_nodes_in_group("units"):
 		if (
@@ -60,7 +72,6 @@ func fire_superweapon(target):
 				unit.hp = unit.hp - strike["damage"] * Factions.HP_FACTOR
 			if strike.get("hack", 0.0) > 0.0 and unit.has_method("is_constructed"):
 				unit.hack(strike["hack"])
-	var match_node = find_parent("Match")
 	if Network.is_online():
 		match_node.show_strike.rpc(target, strike["radius"])
 	else:

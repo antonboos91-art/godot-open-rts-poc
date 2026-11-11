@@ -29,7 +29,9 @@ func _ready():
 
 func _physics_process(_delta):
 	var units_synced = {}
-	var units_to_sync = get_tree().get_nodes_in_group("revealed_units")
+	var units_to_sync = (
+		get_tree().get_nodes_in_group("revealed_units") + get_tree().get_nodes_in_group("vision_sources")
+	)
 	for unit in units_to_sync:
 		if not unit.is_revealing():
 			continue

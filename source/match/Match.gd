@@ -48,6 +48,9 @@ func _ready():
 	var separation = load("res://source/match/UnitSeparation.gd").new()
 	separation.name = "UnitSeparation"
 	add_child(separation)
+	var macro = load("res://source/match/Macro.gd").new()
+	macro.setup(self)
+	add_child(macro)
 	var crushing = load("res://source/match/Crushing.gd").new()
 	add_child(crushing)
 	var crates = load("res://source/match/Crates.gd").new()
@@ -72,6 +75,7 @@ func _ready():
 			_setup_static_synchronizers()
 		_setup_player_units()
 		_move_camera_to_initial_position()
+	_setup_blizzard_extras()
 	MatchSignals.match_started.emit()
 
 
@@ -107,6 +111,7 @@ func _receive_command(kind, unit_paths, args):
 func _execute_command(player, kind, units, args):
 	if player == null:
 		return
+	_record_action(player, kind)
 	var controller = player.find_child("UnitActionsController")
 	match kind:
 		"terrain":
@@ -157,6 +162,8 @@ func _execute_command(player, kind, units, args):
 				_research(player, args[0])
 		"surrender":
 			_surrender(player)
+		"macro":
+			get_node("Macro").cast(player)
 
 
 const SELL_REFUND = 0.5
@@ -346,6 +353,14 @@ func _notify(position, text):
 		show_notice.rpc(position, text)
 	else:
 		show_notice(position, text)
+
+
+## Warnkreis auf dem Boden vor dem Einschlag einer Superwaffe.
+@rpc("authority", "call_local", "reliable")
+func show_telegraph(position, radius, seconds):
+	var lines = get_node_or_null("CommandLines")
+	if lines != null:
+		lines.add_telegraph(position, radius, seconds)
 
 
 ## Kurzer Hinweistext über einer Stelle der Karte (z. B. "Kein Platz").
@@ -670,3 +685,44 @@ func _conceal_player_units(player):
 		func(a_unit): return a_unit.player == player
 	):
 		unit.remove_from_group("revealed_units")
+
+
+# --- Blizzard-Stil: Tastenkürzel, Anzeigen, Aktionen pro Minute --------------------------------
+
+var _action_times = {}  # Spieler -> [Zeitpunkte in s]
+var hotkey_controller = null
+
+
+func _setup_blizzard_extras():
+	var human = _get_human_player()
+	if human == null:
+		return
+	var command_lines = load("res://source/match/CommandLines.gd").new()
+	add_child(command_lines)
+	hotkey_controller = load("res://source/match/players/human/HotkeyController.gd").new()
+	hotkey_controller.setup(self, human)
+	add_child(hotkey_controller)
+	var saturation = load("res://source/match/Saturation.gd").new()
+	saturation.setup(human)
+	add_child(saturation)
+	if DisplayServer.get_name() != "headless":
+		var blizzard_hud = load("res://source/match/hud/BlizzardHud.gd").new()
+		find_child("HUD", false, false).add_child(blizzard_hud)
+		blizzard_hud.setup(self, human, hotkey_controller)
+
+
+func _record_action(player, kind):
+	if kind in ["stop", "attack_move", "queue_move", "terrain", "unit", "produce", "place_structure", "macro", "research", "sell", "superweapon", "deploy", "unload"]:
+		var times = _action_times.get(player, [])
+		times.append(Time.get_ticks_msec() / 1000.0)
+		_action_times[player] = times
+
+
+## Befehle der letzten 60 Sekunden (APM wie in SC2-Zuschaueransichten).
+func actions_per_minute(player):
+	var now = Time.get_ticks_msec() / 1000.0
+	var times = _action_times.get(player, [])
+	while not times.is_empty() and now - times[0] > 60.0:
+		times.pop_front()
+	_action_times[player] = times
+	return times.size()

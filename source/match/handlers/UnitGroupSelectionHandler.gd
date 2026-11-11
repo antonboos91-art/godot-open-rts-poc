@@ -29,9 +29,19 @@ func access_group(group_id: int):
 	Utils.Match.select_units(units_in_group)
 
 
+## Strg+Zahl: neue Gruppe (ersetzt die alte). Umschalt+Strg+Zahl: Auswahl an die Gruppe anhängen.
+## Alt+Strg+Zahl: neue Gruppe und die Einheiten aus allen anderen Gruppen entfernen.
 func set_group(group_id: int):
-	for unit in get_tree().get_nodes_in_group(_unit_group_names[group_id]):
-		unit.remove_from_group(_unit_group_names[group_id])
-	for unit in get_tree().get_nodes_in_group("selected_units"):
-		if unit.is_in_group("controlled_units"):
-			unit.add_to_group(_unit_group_names[group_id])
+	var selected = get_tree().get_nodes_in_group("selected_units").filter(
+		func(unit): return unit.is_in_group("controlled_units")
+	)
+	if Input.is_key_pressed(KEY_ALT):
+		for other_id in range(1, 10):
+			if other_id != group_id:
+				for unit in selected:
+					unit.remove_from_group(_unit_group_names[other_id])
+	if not Input.is_key_pressed(KEY_SHIFT):
+		for unit in get_tree().get_nodes_in_group(_unit_group_names[group_id]):
+			unit.remove_from_group(_unit_group_names[group_id])
+	for unit in selected:
+		unit.add_to_group(_unit_group_names[group_id])

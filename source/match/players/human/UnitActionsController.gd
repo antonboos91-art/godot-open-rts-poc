@@ -2,6 +2,8 @@ extends Node
 
 const Structure = preload("res://source/match/units/Structure.gd")
 const ResourceUnit = preload("res://source/match/units/non-player/ResourceUnit.gd")
+const Hotkeys = preload("res://source/match/players/human/Hotkeys.gd")
+const Factions = preload("res://source/match/factions/Factions.gd")
 
 
 class Actions:
@@ -77,22 +79,49 @@ func _unhandled_input(event):
 		return
 	if event.ctrl_pressed or event.alt_pressed or event.meta_pressed:
 		return
-	match event.physical_keycode:
-		KEY_X:  # Stopp
-			_match.send_command("stop", _get_selected_controlled_units())
-		KEY_F:  # Angriffs-Marsch: nächster Rechtsklick auf das Gelände
-			_attack_move_armed = not _attack_move_armed
-			var armed_units = _get_selected_controlled_units()
-			if _attack_move_armed and not armed_units.is_empty():
-				_match.show_notice(armed_units[0].global_position, "ANGRIFFS-MARSCH: ZIEL WÄHLEN")
-		KEY_DELETE:  # Verkaufen
-			var structures = _get_selected_controlled_units().filter(func(u): return u is Structure)
-			if not structures.is_empty():
-				_match.send_command("sell", structures)
+	if Hotkeys.matches(event, "stop"):
+		_match.send_command("stop", _get_selected_controlled_units())
+	elif Hotkeys.matches(event, "attack_move"):  # nächster Rechtsklick auf das Gelände
+		_attack_move_armed = not _attack_move_armed
+		var armed_units = _get_selected_controlled_units()
+		if _attack_move_armed and not armed_units.is_empty():
+			_match.show_notice(armed_units[0].global_position, "ANGRIFFS-MARSCH: ZIEL WÄHLEN")
+	elif Hotkeys.matches(event, "sell"):
+		var structures = _get_selected_controlled_units().filter(func(u): return u is Structure)
+		if not structures.is_empty():
+			_match.send_command("sell", structures)
 
 
+## Smart-Cast: Fähigkeiten (übernehmen, hacken, sprengen, reparieren) führt nur der nächste geeignete
+## Zauberer der Auswahl aus, nicht die ganze Gruppe; alle anderen Einheiten tun das Übliche.
 func execute_unit_targeted(units, target_unit):
+	units = _smart_cast_filter(units, target_unit)
+	for unit in units:
+		unit.order_queue.clear()
 	_navigate_units_towards_unit(units, target_unit)
+
+
+func _smart_cast_filter(units, target_unit):
+	var casters = units.filter(
+		func(unit):
+			return (
+				Factions.ability(Factions.variant_of(unit)) in ["capture", "hack", "sabotage", "repair"]
+				and (
+					Actions.Capturing.is_applicable(unit, target_unit)
+					or Actions.Repairing.is_applicable(unit, target_unit)
+				)
+			)
+	)
+	if casters.size() <= 1:
+		return units
+	var closest = casters[0]
+	for caster in casters:
+		if (
+			caster.global_position_yless.distance_to(target_unit.global_position_yless)
+			< closest.global_position_yless.distance_to(target_unit.global_position_yless)
+		):
+			closest = caster
+	return units.filter(func(unit): return not unit in casters or unit == closest)
 
 
 func execute_construct(units, structure):

@@ -5,6 +5,7 @@ extends GridContainer
 
 const Factions = preload("res://source/match/factions/Factions.gd")
 const PixelSprite = preload("res://source/match/units/traits/PixelSprite.gd")
+const Hotkeys = preload("res://source/match/players/human/Hotkeys.gd")
 
 const SLOTS = 16
 const RESERVED_SLOT = 3  # dort liegt der Abbrechen-Knopf des GenericMenu
@@ -18,6 +19,7 @@ var _ability_button = null
 var _ability_label = null
 var _sell_target = null
 var _research_buttons = {}
+var _producers = []  # mehrere gleiche Gebäude (MBS): Befehl geht an das am wenigsten belastete
 
 
 func _init():
@@ -185,6 +187,7 @@ func show_construction(player):
 
 
 func _build(variants):
+	_producers = []
 	_ability_unit = null
 	_sell_target = null
 	_research_buttons = {}
@@ -247,7 +250,10 @@ func _refresh_availability():
 		var missing = Factions.missing_requirements(_player, variant)
 		button.disabled = not missing.is_empty()
 		button.modulate = Color(0.6, 0.6, 0.6) if button.disabled else Color.WHITE
+		var slot = _buttons.keys().find(variant) + 1
 		button.tooltip_text = _describe(variant, missing)
+		if slot >= 1 and slot <= 8:
+			button.tooltip_text += "\nTaste: %s" % Hotkeys.label("produce_%d" % slot)
 
 
 func _refresh_ability_button():
@@ -315,7 +321,47 @@ func _on_button_pressed(variant):
 	if not Factions.missing_requirements(_player, variant).is_empty():
 		return
 	if _producer != null:
-		if is_instance_valid(_producer):
-			_producer.production_queue.produce(variant)
+		var target = _least_burdened_producer()
+		if target != null:
+			target.production_queue.produce(variant)
 	else:
 		MatchSignals.place_structure.emit(variant)
+
+
+## Mehrere gleiche Produktionsgebäude (Mehrfachauswahl): ein Menü für alle.
+func show_production_group(structures):
+	var variants = Factions.producible_at(structures[0])
+	if variants.is_empty():
+		return false
+	_player = structures[0].player
+	_producer = structures[0]
+	_build(variants)
+	_producers = structures
+	show()
+	return true
+
+
+## Das Gebäude mit der kürzesten Warteschlange (bei Gleichstand das erste).
+func _least_burdened_producer():
+	var candidates = _producers if _producers.size() > 1 else [_producer]
+	var best = null
+	for structure in candidates:
+		if not is_instance_valid(structure) or structure.production_queue == null:
+			continue
+		if best == null or structure.production_queue.size() < best.production_queue.size():
+			best = structure
+	return best
+
+
+func _unhandled_input(event):
+	if not visible or _player == null or _ability_unit != null or _buttons.is_empty():
+		return
+	for i in range(1, 9):
+		if Hotkeys.matches(event, "produce_%d" % i, true):
+			var variants = _buttons.keys()
+			if i <= variants.size():
+				var variant = variants[i - 1]
+				if Factions.missing_requirements(_player, variant).is_empty():
+					_on_button_pressed(variant)
+					get_viewport().set_input_as_handled()
+			return
