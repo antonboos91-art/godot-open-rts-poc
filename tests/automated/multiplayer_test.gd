@@ -132,7 +132,7 @@ func _run_client():
 		"faction variants of own units replicated to client"
 	)
 	var hq = get_nodes_in_group("controlled_units").filter(func(u): return u.variant == "baeren/hq")
-	_check(not hq.is_empty() and hq[0].hp_max == 30, "variant stats applied on client")
+	_check(not hq.is_empty() and hq[0].hp_max == 30 * load("res://source/match/factions/Factions.gd").HP_FACTOR, "variant stats applied on client")
 
 	# Bewegungsbefehl
 	var worker = get_nodes_in_group("controlled_units").filter(func(u): return u.get_script().resource_path.ends_with("Worker.gd"))[0]

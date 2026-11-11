@@ -22,6 +22,9 @@ var _cc_base_position = null
 ## Mindestvorrat je Rohstoff, unter dem ein Sammler umgeschichtet wird
 const STARVATION_STOCK = 4
 const STARVATION_CHECK_INTERVAL_S = 3.0
+## Ein Rohstoff gilt als Mangel, wenn vom anderen mindestens so viel da ist und er weniger als ein Drittel davon hat
+const IMBALANCE_MIN_STOCK = 20
+const IMBALANCE_RATIO = 3
 
 @onready var _ai = get_parent()
 
@@ -214,6 +217,7 @@ func _retarget_workers_if_necessary():
 ## noch etwas da, wird ein Sammler umgesetzt. Sonst blockiert z. B. eine Sammler-Anfrage,
 ## die Schrott braucht, für immer die Warteschlange (und damit auch Kraftwerke).
 func _rebalance_if_starving():
+	_bail_out_if_broke()
 	if _workers.is_empty():
 		return
 	var stats = _calculate_resource_collecting_statistics()
@@ -221,7 +225,19 @@ func _rebalance_if_starving():
 	for kind in ["resource_a", "resource_b"]:
 		var other = "resource_b" if kind == "resource_a" else "resource_a"
 		var needed = max(worker_cost.get(kind, 0), STARVATION_STOCK)
-		if stats[kind] > 0 or _player.get(kind) >= needed:
+		var stock = _player.get(kind)
+		var other_stock = _player.get(other)
+		# Verhungert: niemand sammelt den Rohstoff und der Vorrat reicht nicht mal fuer einen Sammler -
+		# oder ein Rohstoff stapelt sich, waehrend der andere fehlt (Gebaeude brauchen beide)
+		var starving = stats[kind] == 0 and stock < needed
+		if (
+			other_stock >= IMBALANCE_MIN_STOCK
+			and stock * IMBALANCE_RATIO < other_stock
+			and stats[other] > 0
+			and (stats[other] >= 2 or stats[kind] == 0)
+		):
+			starving = true
+		if not starving:
 			continue
 		var resource_unit = null
 		for worker in _workers:
@@ -248,6 +264,22 @@ func _rebalance_if_starving():
 			if resource_unit != null:
 				worker.action = CollectingResourcesSequentially.new(resource_unit)
 				return
+
+
+## Notfall-Hilfe: Hat die KI keinen einzigen Sammler mehr und reichen die Rohstoffe nicht fuer einen neuen,
+## kann sie sich nie erholen (nur Sammler bringen Rohstoffe) und baut nie wieder etwas.
+## Dann fehlt ihr nur der Preis eines Sammlers - den bekommt sie geschenkt.
+func _bail_out_if_broke():
+	if not _workers.is_empty() or _ccs.is_empty() or _number_of_pending_workers > 0:
+		return
+	var cost = Factions.cost_for(_player, WorkerScene.resource_path)
+	var missing = {}
+	for kind in ["resource_a", "resource_b"]:
+		var lack = cost.get(kind, 0) - _player.get(kind)
+		if lack > 0:
+			missing[kind] = lack
+	if not missing.is_empty():
+		_player.add_resources(missing)
 
 
 func _on_cc_died(cc):

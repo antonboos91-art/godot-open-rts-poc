@@ -233,6 +233,9 @@ func _setup_default_properties_from_constants():
 		default_properties["sight_range"] = max(
 			default_properties["sight_range"], default_properties["attack_range"] + 2.0
 		)
+	for key in ["hp", "hp_max"]:
+		if default_properties.has(key):
+			default_properties[key] = default_properties[key] * Factions.HP_FACTOR
 	for property in default_properties:
 		# Auf Clients kamen hp/hp_max evtl. schon vom Host
 		if Network.is_client() and property in ["hp", "hp_max"] and get(property) != null:
@@ -274,4 +277,4 @@ func _explode():
 		match_node._notify(global_position, "BUMM!")
 	for unit in get_tree().get_nodes_in_group("units"):
 		if unit != self and unit.global_position_yless.distance_to(center) <= blast["radius"]:
-			unit.hp = unit.hp - blast["damage"]
+			unit.hp = unit.hp - blast["damage"] * Factions.HP_FACTOR

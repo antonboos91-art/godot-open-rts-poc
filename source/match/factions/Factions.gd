@@ -8,6 +8,9 @@
 ## das aus den Tabellen in MatchConstants gebaut wird und sich wie das Original verhält.
 extends RefCounted
 
+## Lebenspunkte aller Einheiten und Gebaeude werden mit diesem Faktor multipliziert (Spieltest: starben zu schnell).
+## Schaden von Superwaffen und Todesexplosionen wird gleich mitskaliert, damit ihr Verhaeltnis gleich bleibt.
+const HP_FACTOR = 3.0
 const CORE = "core"
 const SHIBAS = "shibas"
 const KATZEN = "katzen"

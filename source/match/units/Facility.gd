@@ -57,7 +57,7 @@ func fire_superweapon(target):
 			and unit.global_position_yless.distance_to(target_yless) <= strike["radius"]
 		):
 			if strike["damage"] > 0:
-				unit.hp = unit.hp - strike["damage"]
+				unit.hp = unit.hp - strike["damage"] * Factions.HP_FACTOR
 			if strike.get("hack", 0.0) > 0.0 and unit.has_method("is_constructed"):
 				unit.hack(strike["hack"])
 	var match_node = find_parent("Match")

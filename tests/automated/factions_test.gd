@@ -39,7 +39,7 @@ func _run():
 	_check(my_variants.count("shibas/sammler") == 2, "Shibas start with two Schrott-Sammler")
 	var hq = _own(me).filter(func(u): return u.variant == "shibas/hq")[0]
 	var trooper = _own(me).filter(func(u): return u.variant == "shibas/trooper")[0]
-	_check(hq.hp_max == 20 and trooper.hp_max == 4, "variant stats applied")
+	_check(hq.hp_max == 20 * Factions.HP_FACTOR and trooper.hp_max == 4 * Factions.HP_FACTOR, "variant stats applied")
 	_check(
 		_own(players[1]).all(func(u): return u.variant.begins_with("katzen/")),
 		"AI 1 units are Katzen variants"
@@ -49,7 +49,7 @@ func _run():
 		"AI 2 units are Bären variants"
 	)
 	_check(
-		_own(players[2]).filter(func(u): return u.variant == "baeren/hq")[0].hp_max == 30,
+		_own(players[2]).filter(func(u): return u.variant == "baeren/hq")[0].hp_max == 30 * Factions.HP_FACTOR,
 		"Bunkerhöhle has 30 HP"
 	)
 	_check(me.get_power() == [10, 0], "HQ supplies 10 power")
@@ -69,7 +69,7 @@ func _run():
 	_check(me.resource_a == 60, "refused structure costs nothing")
 
 	var dynamo = await _place_and_finish(me, workers, "shibas/power", Vector3(-6, 0, 6))
-	_check(dynamo != null and dynamo.hp_max == 8, "Dynamo-Zwinger built")
+	_check(dynamo != null and dynamo.hp_max == 8 * Factions.HP_FACTOR, "Dynamo-Zwinger built")
 	_check(me.resource_a == 57, "Dynamo-Zwinger costs 3 scrap")
 	_check(me.get_power() == [30, 0], "Dynamo-Zwinger adds 20 power")
 
@@ -180,7 +180,7 @@ func _run():
 	sw.charge_progress = 1.0
 	_match.send_command("superweapon", [sw], [victim.global_position])
 	await _frames(3)
-	_check(victim.hp == victim_hp - 12, "Sturm-Satellit damages enemies in the target area")
+	_check(victim.hp == victim_hp - 12 * Factions.HP_FACTOR, "Sturm-Satellit damages enemies in the target area")
 	_check(sw.charge_progress == 0.0, "firing resets the charge")
 	_check(hq.hp == own_unit_hp, "superweapon spares own buildings")
 
@@ -311,7 +311,7 @@ func _run():
 	var neighbour_hp = neighbour.hp
 	boom_power.hp = 0
 	await _frames(3)
-	_check(neighbour.hp == neighbour_hp - 8, "destroyed Reaktor-Kessel damages units nearby")
+	_check(neighbour.hp == neighbour_hp - 8 * Factions.HP_FACTOR, "destroyed Reaktor-Kessel damages units nearby")
 	neighbour.queue_free()
 	await _frames(3)
 
