@@ -1,5 +1,7 @@
 extends Node3D
 
+const CombatFX = preload("res://source/match/units/traits/CombatFX.gd")
+
 var target_unit = null
 
 @onready var _unit = get_parent()
@@ -39,4 +41,6 @@ func _setup_path():
 
 
 func _perform_hit():
+	if is_instance_valid(target_unit) and CombatFX.visible_for(_unit, target_unit):
+		CombatFX.explosion(target_unit, target_unit.global_position + Vector3(0, 0.6, 0), 0.6)
 	target_unit.hp -= _unit.attack_damage

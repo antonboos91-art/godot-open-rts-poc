@@ -202,6 +202,7 @@ func _safety_checks():
 
 func _handle_unit_death():
 	_explode()
+	_death_fx()
 	tree_exited.connect(func(): MatchSignals.unit_died.emit(self))
 	# Auf Clients entfernt der MultiplayerSpawner die Einheit.
 	if not Network.is_client():
@@ -249,6 +250,14 @@ func is_hacked():
 
 func hack(seconds):
 	set_meta("hacked_until", Time.get_ticks_msec() + int(seconds * 1000.0))
+
+
+## Grosse Explosion beim Tod von Fahrzeugen und Gebaeuden (Infanterie hat eigene Sterbe-Animation)
+func _death_fx():
+	if not is_inside_tree() or not visible or type == "Infantry":
+		return
+	var size = 2.0 if has_method("is_constructed") else (1.0 if type in ["Drone", "Worker"] else 1.4)
+	load("res://source/match/units/traits/CombatFX.gd").explosion(self, global_position, size)
 
 
 ## Kraftwerke der Bären reißen bei der Zerstörung alles in der Nähe mit.

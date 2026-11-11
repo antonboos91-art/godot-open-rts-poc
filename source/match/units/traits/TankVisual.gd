@@ -5,6 +5,7 @@
 extends Node3D
 
 const TRACK_SHADER = preload("res://source/shaders/3d/tank_track.gdshader")
+const CombatFX = preload("res://source/match/units/traits/CombatFX.gd")
 const TURRET_TURN_SPEED = 2.6  # rad/s
 const SHELL_SPEED = 60.0
 
@@ -212,8 +213,7 @@ func _fire(target):
 	var muzzle = _turret.to_global(Vector3(m[0], m[1], m[2]))
 	var get_tree_root = get_tree().current_scene if get_tree().current_scene != null else get_tree().root
 	SoundEffects.play("tank_fire", muzzle)
-	_spawn_flash(get_tree_root, muzzle)
-	_spawn_shell(get_tree_root, muzzle, target.global_position + Vector3(0, 0.8, 0))
+	CombatFX.shot(_unit, muzzle, target.global_position + Vector3(0, 0.8, 0), 2.2)
 
 
 func _spawn_flash(root, at):
@@ -270,6 +270,8 @@ func _spawn_shell(root, from, to):
 
 
 func _impact(root, at):
+	CombatFX.explosion(self, at, 0.7)
+	return
 	SoundEffects.play("shell_impact", at)
 	var light = OmniLight3D.new()
 	light.light_color = Color(1.0, 0.55, 0.2)

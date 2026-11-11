@@ -211,12 +211,16 @@ func _fire(target):
 			_spawn_smoke(root, from, Color(0.75, 0.75, 0.75, 0.6), 10, 0.7, 1.5, 0.3)
 			_spawn_rocket(root, from, aim)
 		"mg":
-			SoundEffects.play("mg_burst", muzzle)
-			_spawn_mg(root, muzzle, aim)
+			# schnelle Salve im Stil des Volks
+			for i in range(3):
+				get_tree().create_timer(i * 0.09).timeout.connect(
+					func():
+						if is_instance_valid(_unit) and is_instance_valid(target):
+							CombatFX.shot(_unit, muzzle, aim + Vector3(randf_range(-0.3, 0.3), 0, randf_range(-0.3, 0.3)), 1.1)
+				)
 		_:
 			SoundEffects.play("tank_fire", muzzle)
-			_spawn_flash(root, muzzle)
-			_spawn_shell(root, muzzle, aim)
+			CombatFX.shot(_unit, muzzle, aim, 2.2)
 
 
 func _spawn_rocket(root, from, to):

@@ -1,4 +1,8 @@
+## Direkttreffer-Waffe (Infanterie, Panzer ohne eigenes Fahrzeug-Visual, Abwehrtuerme).
+## Schaden sofort; Optik ueber CombatFX im Stil des Volks (Laser / Phaser / Plasma).
 extends Node3D
+
+const CombatFX = preload("res://source/match/units/traits/CombatFX.gd")
 
 var target_unit = null
 
@@ -9,23 +13,29 @@ var target_unit = null
 
 func _ready():
 	assert(target_unit != null, "target unit was not provided")
-	_unit_particles.visible = _unit.visible
-	_setup_unit_particles()
+	_unit_particles.visible = false
 	_setup_timer()
+	_show_shot()
 	target_unit.hp -= _unit.attack_damage
 
 
 func _setup_timer():
 	_timer.timeout.connect(queue_free)
-	_timer.start(_unit_particles.lifetime)
+	_timer.start(0.5)
 
 
-func _setup_unit_particles():
-	await get_tree().physics_frame  # wait for rotation to kick in if remote transform is used
-	var a_global_transform = (
-		_unit.global_transform
-		if _unit.find_child("ProjectileOrigin") == null
-		else _unit.find_child("ProjectileOrigin").global_transform
-	)
-	_unit_particles.global_transform = a_global_transform
-	_unit_particles.emitting = true
+func _show_shot():
+	# Fahrzeug-Visuals zeigen ihren Schuss selbst
+	if _unit.find_child("SpriteVehicle", false, false) != null or _unit.find_child("TankVisual", false, false) != null:
+		return
+	if not CombatFX.visible_for(_unit, target_unit):
+		return
+	var to_target = target_unit.global_position - _unit.global_position
+	to_target.y = 0.0
+	var dir = to_target.normalized() if to_target.length() > 0.01 else Vector3.FORWARD
+	var is_structure = _unit.has_method("is_constructed")
+	var height = 1.9 if is_structure else 1.15
+	var from = _unit.global_position + Vector3(0, height, 0) + dir * (0.9 if is_structure else 0.45)
+	var aim_height = 0.7 if not target_unit.has_method("is_constructed") else 1.2
+	var to = target_unit.global_position + Vector3(0, aim_height, 0) - dir * min(target_unit.radius if target_unit.radius != null else 0.0, 1.5) * 0.6
+	CombatFX.shot(_unit, from, to, 2.2 if is_structure else 1.0)
