@@ -7,7 +7,7 @@ var _one_shot_timer = null
 var _range_check_timer = null
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
-@onready var _unit_movement_trait = _unit.find_child("Movement")
+@onready var _unit_movement_trait = _unit.get_node_or_null("Movement")
 
 
 func _init(target_unit):

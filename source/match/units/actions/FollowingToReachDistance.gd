@@ -8,7 +8,7 @@ var _timer = null
 var _last_known_target_unit_position = null
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
-@onready var _movement_trait = _unit.find_child("Movement")
+@onready var _movement_trait = _unit.get_node_or_null("Movement")
 
 
 func _init(target_unit, distance_to_reach):

@@ -31,7 +31,7 @@ func _ready():
 	_align_camera_properties_to_current_size()
 
 
-func _physics_process(delta: float):
+func _process(delta: float):
 	var realtime_delta = delta / Engine.time_scale
 	if _try_handling_movement(realtime_delta):
 		return

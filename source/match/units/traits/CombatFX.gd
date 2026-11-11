@@ -18,6 +18,31 @@ const STYLE = {
 static var _dot = null
 static var _ring = null
 static var _puff = null
+## Caches, damit im Gefecht nicht pro Schuss neue Materialien/Kurven/Meshes entstehen
+static var _cache = {}
+static var _active_lights = 0
+const MAX_FX_LIGHTS = 24
+
+
+## Alle Effekt-Arten einmal unter dem Boden abspielen, damit die Shader beim Laden kompiliert werden
+## und nicht beim ersten Gefecht ruckeln.
+static func prewarm(node, at):
+	var root = _root(node)
+	if root == null or DisplayServer.get_name() == "headless":
+		return
+	var cam = root.get_viewport().get_camera_3d()
+	if cam != null:
+		var hit = Plane(Vector3.UP, 0.0).intersects_ray(cam.global_position, -cam.global_transform.basis.z)
+		if hit != null:
+			at = hit
+	var p = at + Vector3(0, -3.0, 0)
+	for key in ["shibas", "katzen", "baeren"]:
+		var c = STYLE[key]["color"]
+		beam(root, p, p + Vector3(2, 0, 0), c, 0.1, 0.2, true)
+		bolt(root, p, p + Vector3(0, 0, 2), c, 0.1, 1.0, 40.0, 0.5)
+		muzzle(root, p, c, 0.4)
+		impact(root, p, c, 1.0)
+	explosion(node, p, 1.0)
 
 
 static func style_for(unit):
@@ -39,6 +64,8 @@ static func visible_for(shooter, target):
 
 ## Ein Schuss im Stil des Volks von `from` nach `to`. scale: 1 = Infanterie, 2 = Panzer, 3 = Turm
 static func shot(shooter, from, to, scale = 1.0, style = null):
+	if Engine.has_meta("combatfx_off"):
+		return
 	var root = _root(shooter)
 	if root == null:
 		return
@@ -143,10 +170,13 @@ static func impact(root, at, color, size):
 
 ## Grosse Explosion: Feuerball, Druckwelle am Boden, Rauchsaeule, Truemmer, Funken, Brandfleck
 static func explosion(node, at, size = 1.0, color = Color(1.7, 0.65, 0.18)):
+	if Engine.has_meta("combatfx_off"):
+		return
 	var root = _root(node)
 	if root == null:
 		return
-	SoundEffects.play("explosion_huge" if size >= 1.5 else "explosion_big", at)
+	if at.y > -1.0:
+		SoundEffects.play("explosion_huge" if size >= 1.5 else "explosion_big", at)
 	_flash(root, at + Vector3(0, 0.6 * size, 0), Color(2.2, 1.6, 0.9), 3.2 * size, 0.22)
 	_light(root, at + Vector3(0, 1.0, 0), Color(1.0, 0.6, 0.25), 14.0 * size, 7.0 + 5.0 * size, 0.6)
 	# Feuerball (additiv, HDR)
@@ -192,23 +222,28 @@ static func _additive(color):
 
 static func _flash(root, at, color, size, life):
 	var flash = MeshInstance3D.new()
-	var q = QuadMesh.new()
-	q.size = Vector2(size, size)
-	flash.mesh = q
-	var m = _additive(Color(color.r, color.g, color.b, 1.0))
-	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	m.albedo_texture = soft_dot()
-	flash.material_override = m
+	flash.mesh = _cached("quad1", func(): var q = QuadMesh.new(); q.size = Vector2(1, 1); return q)
+	flash.scale = Vector3(size, size, size)
+	var key = "flash%s" % [Color(color.r, color.g, color.b).to_html()]
+	flash.material_override = _cached(key, func():
+		var mm = _additive(Color(color.r, color.g, color.b, 1.0))
+		mm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		mm.billboard_keep_scale = true
+		mm.albedo_texture = soft_dot()
+		return mm)
 	flash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(flash)
 	flash.global_position = at
 	var tw = flash.create_tween()
-	tw.tween_property(flash, "scale", Vector3(1.6, 1.6, 1.6), life)
-	tw.parallel().tween_property(m, "albedo_color:a", 0.0, life)
+	tw.tween_property(flash, "scale", Vector3(size, size, size) * 1.5, life * 0.4)
+	tw.tween_property(flash, "scale", Vector3.ZERO, life * 0.6)
 	tw.tween_callback(flash.queue_free)
 
 
 static func _light(root, at, color, energy, light_range, life):
+	if _active_lights >= MAX_FX_LIGHTS:
+		return
+	_active_lights += 1
 	var light = OmniLight3D.new()
 	light.light_color = Color(clamp(color.r, 0, 1), clamp(color.g, 0, 1), clamp(color.b, 0, 1))
 	light.light_energy = energy
@@ -217,6 +252,7 @@ static func _light(root, at, color, energy, light_range, life):
 	light.global_position = at
 	var tw = light.create_tween()
 	tw.tween_property(light, "light_energy", 0.0, life)
+	tw.tween_callback(func(): _active_lights -= 1)
 	tw.tween_callback(light.queue_free)
 
 
@@ -236,15 +272,37 @@ static func _particles(root, at, c_start, c_end, amount, lifetime, velocity, siz
 	p.damping_max = 3.5
 	p.scale_amount_min = size * 0.6
 	p.scale_amount_max = size * 1.4
-	var scale_curve = Curve.new()
-	scale_curve.add_point(Vector2(0, 0.6))
-	scale_curve.add_point(Vector2(0.3, 1.0))
-	scale_curve.add_point(Vector2(1, 1.3 if not additive else 0.4))
-	p.scale_amount_curve = scale_curve
-	var q = QuadMesh.new()
-	q.size = Vector2(1, 1)
-	p.mesh = q
-	var m = StandardMaterial3D.new()
+	p.scale_amount_curve = _cached("curve%s" % additive, func():
+		var sc = Curve.new()
+		sc.add_point(Vector2(0, 0.6))
+		sc.add_point(Vector2(0.3, 1.0))
+		sc.add_point(Vector2(1, 1.3 if not additive else 0.4))
+		return sc)
+	p.mesh = _cached("quad1", func(): var q = QuadMesh.new(); q.size = Vector2(1, 1); return q)
+	var k = max(1.0, max(c_start.r, max(c_start.g, c_start.b)))
+	var mkey = "pm%s_%s_%.2f" % [additive, size > 0.15, k]
+	var m = _cached(mkey, func(): return StandardMaterial3D.new())
+	if size > 0.15:
+		p.angle_min = 0.0
+		p.angle_max = 360.0
+	if k > 1.0:
+		c_start = Color(c_start.r / k, c_start.g / k, c_start.b / k, c_start.a)
+		c_end = Color(c_end.r / k, c_end.g / k, c_end.b / k, c_end.a)
+	var gkey = "g%s%s%s%s" % [c_start.to_html(), c_end.to_html(), c_start.a, c_end.a]
+	p.color_ramp = _cached(gkey, func():
+		var gg = Gradient.new()
+		gg.set_color(0, c_start)
+		gg.set_color(1, c_end)
+		return gg)
+	if m.has_meta("ready"):
+		p.material_override = m
+		p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(p)
+		p.global_position = at
+		p.emitting = true
+		p.finished.connect(p.queue_free)
+		return
+	m.set_meta("ready", true)
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	if additive:
@@ -257,18 +315,11 @@ static func _particles(root, at, c_start, c_end, amount, lifetime, velocity, siz
 		p.angle_min = 0.0
 		p.angle_max = 360.0
 		m.billboard_keep_scale = true
-	# HDR-Farben: Verlauf normieren, Helligkeit ueber albedo_color (Bloom)
-	var k = max(1.0, max(c_start.r, max(c_start.g, c_start.b)))
+	# HDR-Farben: Verlauf ist normiert, Helligkeit ueber albedo_color (Bloom)
 	if k > 1.0:
-		c_start = Color(c_start.r / k, c_start.g / k, c_start.b / k, c_start.a)
-		c_end = Color(c_end.r / k, c_end.g / k, c_end.b / k, c_end.a)
 		m.albedo_color = Color(k, k, k, 1.0)
 	p.material_override = m
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var g = Gradient.new()
-	g.set_color(0, c_start)
-	g.set_color(1, c_end)
-	p.color_ramp = g
 	root.add_child(p)
 	p.global_position = at
 	p.emitting = true
@@ -314,6 +365,12 @@ static func _scorch(root, at, radius):
 	tw.tween_interval(14.0)
 	tw.tween_property(m, "albedo_color:a", 0.0, 4.0)
 	tw.tween_callback(scorch.queue_free)
+
+
+static func _cached(key, make):
+	if not _cache.has(key):
+		_cache[key] = make.call()
+	return _cache[key]
 
 
 static func soft_dot():

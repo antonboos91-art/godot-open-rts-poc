@@ -84,6 +84,8 @@ func _add_atmosphere():
 	ash.material_override = am
 	ash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(ash)
+	# Kampfeffekt-Shader vorab kompilieren (kein Ruckeln beim ersten Gefecht)
+	get_tree().create_timer(0.5).timeout.connect(func(): load("res://source/match/units/traits/CombatFX.gd").prewarm(self, Vector3(size.x / 2.0, 0, size.y / 2.0)))
 
 
 func get_topdown_polygon_2d():

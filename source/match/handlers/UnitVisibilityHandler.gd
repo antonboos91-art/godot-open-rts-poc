@@ -14,7 +14,14 @@ func _ready():
 	MatchSignals.unit_died.connect(_on_unit_died)
 
 
+## Sichtbarkeit nur jeden dritten Physik-Frame neu berechnen (n mal n Abstaende, bei grossen Armeen teuer)
+var _tick = 0
+
+
 func _physics_process(_delta):
+	_tick += 1
+	if _tick % 3 != 0:
+		return
 	var all_units = get_tree().get_nodes_in_group("units")
 	var revealed_units = all_units.filter(func(unit): return unit.is_in_group("revealed_units"))
 	for unit in all_units:

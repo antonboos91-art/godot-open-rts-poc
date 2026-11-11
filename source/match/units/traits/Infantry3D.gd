@@ -136,6 +136,11 @@ func _process(delta: float):
 	if _unit == null or _dying or delta <= 0.0:
 		return
 	var pos: Vector3 = _unit.global_position
+	# Animation nur abspielen, wenn die Figur im Bild ist (spart viel CPU bei grossen Armeen)
+	var cam = get_viewport().get_camera_3d()
+	var on_screen = cam == null or (_unit.visible and cam.is_position_in_frustum(pos + Vector3(0, 1.0, 0)))
+	if _anim != null and _anim.active != on_screen:
+		_anim.active = on_screen
 	var step: Vector3 = pos - _last_pos
 	_last_pos = pos
 	step.y = 0.0

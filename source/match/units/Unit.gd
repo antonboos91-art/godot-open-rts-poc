@@ -107,10 +107,10 @@ func _set_hp_max(value):
 
 
 func _get_radius():
-	if find_child("Movement") != null:
-		return find_child("Movement").radius
-	if find_child("MovementObstacle") != null:
-		return find_child("MovementObstacle").radius
+	if get_node_or_null("Movement") != null:
+		return get_node_or_null("Movement").radius
+	if get_node_or_null("MovementObstacle") != null:
+		return get_node_or_null("MovementObstacle").radius
 	return null
 
 
@@ -121,16 +121,16 @@ func attack_reach_to(target):
 
 
 func _get_movement_domain():
-	if find_child("Movement") != null:
-		return find_child("Movement").domain
-	if find_child("MovementObstacle") != null:
-		return find_child("MovementObstacle").domain
+	if get_node_or_null("Movement") != null:
+		return get_node_or_null("Movement").domain
+	if get_node_or_null("MovementObstacle") != null:
+		return get_node_or_null("MovementObstacle").domain
 	return null
 
 
 func _get_movement_speed():
-	if find_child("Movement") != null:
-		return find_child("Movement").speed
+	if get_node_or_null("Movement") != null:
+		return get_node_or_null("Movement").speed
 	return 0.0
 
 
@@ -222,8 +222,8 @@ func _setup_default_properties_from_constants():
 	var variant_stats = Factions.stats(variant)
 	if "hp" in variant_stats:
 		variant_stats["hp_max"] = variant_stats["hp"]
-	if "speed" in variant_stats and find_child("Movement") != null:
-		find_child("Movement").speed = variant_stats["speed"]
+	if "speed" in variant_stats and get_node_or_null("Movement") != null:
+		get_node_or_null("Movement").speed = variant_stats["speed"]
 	variant_stats.erase("speed")
 	if default_properties.has("attack_range") and not variant_stats.has("attack_range"):
 		default_properties["attack_range"] = Factions.scaled_range(default_properties["attack_range"])

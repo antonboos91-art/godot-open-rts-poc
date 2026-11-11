@@ -3,11 +3,11 @@ extends "res://source/match/units/actions/Action.gd"
 var _target_position = null
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
-@onready var _movement_trait = _unit.find_child("Movement")
+@onready var _movement_trait = _unit.get_node_or_null("Movement")
 
 
 static func is_applicable(unit):
-	return unit.find_child("Movement") != null
+	return unit.get_node_or_null("Movement") != null
 
 
 func _init(target_position):

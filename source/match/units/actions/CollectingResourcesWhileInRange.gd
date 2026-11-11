@@ -7,7 +7,7 @@ var _resource_unit = null
 var _timer = null
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
-@onready var _unit_movement_trait = _unit.find_child("Movement")
+@onready var _unit_movement_trait = _unit.get_node_or_null("Movement")
 
 
 static func is_applicable(source_unit, target_unit):
