@@ -24,6 +24,134 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 model = importlib.import_module(a.model)
 colls = model.build()
 
+
+# ---------- Verwitterung (Dark-Reign-Look): abgekaempft, dreckig, dunkel ----------
+# Jedes Principled-Material bekommt: dunklere, entsaettigte Grundfarbe, Dreck in Ritzen (AO),
+# fleckigen Staub/Russ (Rauschen), Rost-Spuren, Schlamm unten am Fahrzeug, helle Kratzer an Kanten.
+# Leuchtteile (Emission) bleiben unberuehrt. Abschalten: Umgebungsvariable WEATHER=0
+def weather_materials():
+    if os.environ.get("WEATHER", "1") == "0":
+        return
+    done = set()
+    for o in bpy.data.objects:
+        if o.type != "MESH":
+            continue
+        for slot in o.material_slots:
+            m = slot.material
+            if m is None or m.name in done or not m.use_nodes:
+                continue
+            done.add(m.name)
+            nt = m.node_tree
+            pb = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
+            if pb is None:
+                continue
+            em = pb.inputs["Emission Strength"].default_value if "Emission Strength" in pb.inputs else 0.0
+            if em > 0.5 and not pb.inputs["Emission Strength"].links:
+                continue  # Lampen / Leuchtstreifen
+            bc = pb.inputs["Base Color"]
+            src = bc.links[0].from_socket if bc.links else None
+            base = nt.nodes.new("ShaderNodeRGB")
+            base.outputs[0].default_value = bc.default_value
+            col = src if src is not None else base.outputs[0]
+            # dunkler + entsaettigt
+            hsv = nt.nodes.new("ShaderNodeHueSaturation")
+            hsv.inputs["Saturation"].default_value = 0.7
+            hsv.inputs["Value"].default_value = 0.42
+            nt.links.new(col, hsv.inputs["Color"])
+            tc = nt.nodes.new("ShaderNodeTexCoord")
+            # fleckiger Staub/Russ
+            noise = nt.nodes.new("ShaderNodeTexNoise")
+            noise.inputs["Scale"].default_value = 3.5
+            noise.inputs["Detail"].default_value = 8.0
+            nt.links.new(tc.outputs["Object"], noise.inputs["Vector"])
+            ramp = nt.nodes.new("ShaderNodeValToRGB")
+            ramp.color_ramp.elements[0].position = 0.42
+            ramp.color_ramp.elements[1].position = 0.72
+            nt.links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
+            dirt = nt.nodes.new("ShaderNodeMix")
+            dirt.data_type = "RGBA"
+            dirt.inputs[7].default_value = (0.09, 0.075, 0.06, 1)
+            nt.links.new(hsv.outputs[0], dirt.inputs[6])
+            mulf = nt.nodes.new("ShaderNodeMath")
+            mulf.operation = "MULTIPLY"
+            mulf.inputs[1].default_value = 0.75
+            nt.links.new(ramp.outputs[0], mulf.inputs[0])
+            nt.links.new(mulf.outputs[0], dirt.inputs[0])
+            # Dreck + Rost in Ritzen (Ambient Occlusion)
+            ao = nt.nodes.new("ShaderNodeAmbientOcclusion")
+            ao.inputs["Distance"].default_value = 0.25
+            inv = nt.nodes.new("ShaderNodeMath")
+            inv.operation = "SUBTRACT"
+            inv.inputs[0].default_value = 1.0
+            nt.links.new(ao.outputs["AO"], inv.inputs[1])
+            cav = nt.nodes.new("ShaderNodeMath")
+            cav.operation = "MULTIPLY"
+            cav.inputs[1].default_value = 1.6
+            cav.use_clamp = True
+            nt.links.new(inv.outputs[0], cav.inputs[0])
+            rust = nt.nodes.new("ShaderNodeMix")
+            rust.data_type = "RGBA"
+            rust.inputs[7].default_value = (0.16, 0.07, 0.03, 1)
+            nt.links.new(dirt.outputs[2], rust.inputs[6])
+            nt.links.new(cav.outputs[0], rust.inputs[0])
+            # Schlamm unten (Objekt-Hoehe)
+            sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+            nt.links.new(tc.outputs["Generated"], sep.inputs[0])
+            mud_mask = nt.nodes.new("ShaderNodeMapRange")
+            mud_mask.inputs["From Min"].default_value = 0.35
+            mud_mask.inputs["From Max"].default_value = 0.0
+            nt.links.new(sep.outputs["Z"], mud_mask.inputs["Value"])
+            mud_noise = nt.nodes.new("ShaderNodeMath")
+            mud_noise.operation = "MULTIPLY"
+            nt.links.new(mud_mask.outputs[0], mud_noise.inputs[0])
+            nt.links.new(noise.outputs["Fac"], mud_noise.inputs[1])
+            mud_k = nt.nodes.new("ShaderNodeMath")
+            mud_k.operation = "MULTIPLY"
+            mud_k.inputs[1].default_value = 1.6
+            mud_k.use_clamp = True
+            nt.links.new(mud_noise.outputs[0], mud_k.inputs[0])
+            mud = nt.nodes.new("ShaderNodeMix")
+            mud.data_type = "RGBA"
+            mud.inputs[7].default_value = (0.11, 0.085, 0.055, 1)
+            nt.links.new(rust.outputs[2], mud.inputs[6])
+            nt.links.new(mud_k.outputs[0], mud.inputs[0])
+            # helle Kratzer an Kanten (Bevel-Normale gegen Flaechennormale)
+            geo = nt.nodes.new("ShaderNodeNewGeometry")
+            bev = nt.nodes.new("ShaderNodeBevel")
+            bev.inputs["Radius"].default_value = 0.03
+            dot = nt.nodes.new("ShaderNodeVectorMath")
+            dot.operation = "DOT_PRODUCT"
+            nt.links.new(geo.outputs["Normal"], dot.inputs[0])
+            nt.links.new(bev.outputs["Normal"], dot.inputs[1])
+            edge = nt.nodes.new("ShaderNodeMapRange")
+            edge.inputs["From Min"].default_value = 0.97
+            edge.inputs["From Max"].default_value = 0.85
+            nt.links.new(dot.outputs["Value"], edge.inputs["Value"])
+            scratch_n = nt.nodes.new("ShaderNodeTexNoise")
+            scratch_n.inputs["Scale"].default_value = 22.0
+            nt.links.new(tc.outputs["Object"], scratch_n.inputs["Vector"])
+            edge_k = nt.nodes.new("ShaderNodeMath")
+            edge_k.operation = "MULTIPLY"
+            nt.links.new(edge.outputs[0], edge_k.inputs[0])
+            nt.links.new(scratch_n.outputs["Fac"], edge_k.inputs[1])
+            wear = nt.nodes.new("ShaderNodeMix")
+            wear.data_type = "RGBA"
+            wear.inputs[7].default_value = (0.3, 0.29, 0.27, 1)
+            nt.links.new(mud.outputs[2], wear.inputs[6])
+            edge_s = nt.nodes.new("ShaderNodeMath")
+            edge_s.operation = "MULTIPLY"
+            edge_s.inputs[1].default_value = 0.45
+            nt.links.new(edge_k.outputs[0], edge_s.inputs[0])
+            nt.links.new(edge_s.outputs[0], wear.inputs[0])
+            nt.links.new(wear.outputs[2], bc)
+            # matter, ausser an Kratzern
+            if not pb.inputs["Roughness"].links:
+                r = pb.inputs["Roughness"].default_value
+                pb.inputs["Roughness"].default_value = max(r, 0.72)
+
+
+weather_materials()
+
 sc = bpy.context.scene
 sc.render.engine = "CYCLES"
 prefs = bpy.context.preferences.addons["cycles"].preferences
