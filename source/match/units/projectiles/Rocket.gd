@@ -43,4 +43,4 @@ func _setup_path():
 func _perform_hit():
 	if is_instance_valid(target_unit) and CombatFX.visible_for(_unit, target_unit):
 		CombatFX.explosion(target_unit, target_unit.global_position + Vector3(0, 0.6, 0), 0.6)
-	target_unit.hp -= _unit.attack_damage
+	target_unit.take_hit(_unit.attack_damage, _unit)

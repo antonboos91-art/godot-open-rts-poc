@@ -27,6 +27,11 @@ var difficulty = 1
 ## Multiplayer-Peer, der diesen Spieler steuert (0 = KI bzw. lokal im Einzelspieler).
 var peer_id = 0
 
+## Upgrade-Stufen: Waffen +15 % Schaden, Panzerung -13 % erlittener Schaden je Stufe
+@export var upgrade_weapons = 0
+@export var upgrade_armor = 0
+const MAX_UPGRADE_LEVEL = 3
+
 var _color_material = null
 
 
@@ -35,7 +40,9 @@ var _color_material = null
 func add_synchronizer():
 	var synchronizer = MultiplayerSynchronizer.new()
 	synchronizer.name = "ResourcesSynchronizer"
-	synchronizer.replication_config = Utils.Net.replication_config([":resource_a", ":resource_b"])
+	synchronizer.replication_config = Utils.Net.replication_config(
+		[":resource_a", ":resource_b", ":upgrade_weapons", ":upgrade_armor"]
+	)
 	add_child(synchronizer)
 
 

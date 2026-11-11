@@ -353,7 +353,7 @@ func _set_portrait(unit):
 		_portrait_name.text = ""
 		return
 	var variant = Factions.variant_of(unit)
-	var path = PORTRAIT_DIR + variant.replace("/", "_") + ".jpg"
+	var path = PORTRAIT_DIR + Factions.art(variant).replace("/", "_") + ".jpg"
 	if ResourceLoader.exists(path):
 		_portrait.texture = load(path)
 		var m = ShaderMaterial.new()

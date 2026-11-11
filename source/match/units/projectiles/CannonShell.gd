@@ -16,7 +16,7 @@ func _ready():
 	_unit_particles.visible = false
 	_setup_timer()
 	_show_shot()
-	target_unit.hp -= _unit.attack_damage
+	target_unit.take_hit(_unit.attack_damage, _unit)
 
 
 func _setup_timer():

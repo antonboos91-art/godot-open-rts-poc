@@ -3,6 +3,7 @@
 ## Räder drehen sich, Ketten laufen, der Turm zielt auf das Ziel, beim Schuss gibt es
 ## Rückstoß, Mündungsfeuer, Leuchtspur-Granate, Einschlag, Motor- und Kettensound.
 extends Node3D
+const Factions = preload("res://source/match/factions/Factions.gd")
 
 const TRACK_SHADER = preload("res://source/shaders/3d/tank_track.gdshader")
 const CombatFX = preload("res://source/match/units/traits/CombatFX.gd")
@@ -28,7 +29,7 @@ var _aim_until = 0
 static func dir_for(variant):
 	if variant == "":
 		return ""
-	var d = "res://assets/models/factions/" + variant.replace("/", "_") + "/"
+	var d = "res://assets/models/factions/" + Factions.art(variant).replace("/", "_") + "/"
 	return d if ResourceLoader.exists(d + "hull.glb") else ""
 
 

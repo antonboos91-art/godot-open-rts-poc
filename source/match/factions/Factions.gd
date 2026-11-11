@@ -21,7 +21,9 @@ const RANGE_SCALE = 1.4
 const RANGED_MIN = 3.0
 const PLAYABLE = [SHIBAS, KATZEN, BAEREN]
 
-const UNITS_DIR = "res://source/match/units/"
+const Sc1Balance = preload("res://source/match/factions/Sc1Balance.gd")
+
+const UNITS_DIR ="res://source/match/units/"
 const ARCHETYPES = {
 	"hq": UNITS_DIR + "CommandCenter.tscn",
 	"power": UNITS_DIR + "PowerPlant.tscn",
@@ -71,7 +73,7 @@ const STRUCTURES = {
 			-5,
 			["barracks"],
 			8,
-			{"stats": {"attack_damage": 2, "attack_interval": 0.8}}
+			{"stats": {"attack_damage": 2, "attack_interval": 0.8}, "ability": "garrison"}
 		],
 		["turret_air", "Flak-Kläffer", "turret_air", 3, 1, -5, ["radar"], 8, {}],
 		[
@@ -108,7 +110,7 @@ const STRUCTURES = {
 			-5,
 			["barracks"],
 			7,
-			{"stats": {"attack_range": 10.0, "sight_range": 10.0}}
+			{"stats": {"attack_range": 10.0, "sight_range": 10.0}, "ability": "garrison"}
 		],
 		["turret_air", "Spiegel-Flak", "turret_air", 3, 2, -5, ["radar"], 7, {}],
 		[
@@ -159,7 +161,7 @@ const STRUCTURES = {
 		["airfield", "Rotor-Scheune", "airfield", 7, 2, -10, ["radar"], 16, {}],
 		["repair", "Schweißerei", "facility", 4, 0, -5, ["factory"], 12, {"ability": "repair"}],
 		["lab", "Tatzen-Werk", "facility", 9, 3, -12, ["radar"], 14, {}],
-		["turret_ground", "Bunker-Kanone", "turret_ground", 4, 0, -5, ["barracks"], 14, {}],
+		["turret_ground", "Bunker-Kanone", "turret_ground", 4, 0, -5, ["barracks"], 14, {"ability": "garrison"}],
 		["turret_air", "Flak-Grizzly", "turret_air", 4, 1, -5, ["radar"], 10, {}],
 		[
 			"superweapon",
@@ -342,6 +344,9 @@ const UNITS = {
 			{"hp": 10, "attack_damage": 3, "attack_interval": 1.0, "attack_domains": "ground"},
 			{"ai": true}
 		],
+		["transporter", "Kawa-Transporter", "heli", 2, 2, 6.0, "airfield", ["radar"], {}, {"ability": "transport", "art": "shibas/wespe"}],
+		["walkuere", "Walküre-Drohne", "heli", 5, 3, 6.0, "airfield", ["lab"], {}, {"art": "shibas/gewitter"}],
+		["wissenschaft", "Aufklärungs-Drohne", "heli", 2, 5, 6.0, "airfield", ["lab"], {}, {"art": "shibas/wespe"}],
 	],
 	KATZEN:
 	[
@@ -510,6 +515,9 @@ const UNITS = {
 			},
 			{"ai": true}
 		],
+		["schatten_shuttle", "Schatten-Shuttle", "heli", 4, 0, 7.0, "airfield", ["radar"], {}, {"ability": "transport", "art": "katzen/nachtfalter"}],
+		["dunkel_archon", "Dunkle Äbtissin", "infantry", 5, 4, 10.0, "barracks", ["lab"], {}, {"art": "katzen/hackerin"}],
+		["mutterschiff", "Mutterschiff", "heli", 7, 5, 12.0, "airfield", ["lab"], {}, {"art": "katzen/kreischer"}],
 	],
 	BAEREN:
 	[
@@ -677,6 +685,9 @@ const UNITS = {
 			{"attack_domains": "none", "hp": 8},
 			{"ability": "transport"}
 		],
+		["waechter", "Wächter-Bär", "heli", 3, 4, 8.0, "airfield", ["lab"], {}, {"art": "baeren/brummkopter"}],
+		["kamikaze", "Kamikaze-Hummel", "heli", 1, 2, 4.0, "airfield", [], {}, {"art": "baeren/brummkopter"}],
+		["koenigin", "Bärenkönigin", "heli", 2, 2, 7.0, "airfield", ["lab"], {}, {"art": "baeren/flugkessel"}],
 	],
 }
 
@@ -697,6 +708,12 @@ static func entry(variant):
 
 static func info(faction):
 	return INFO.get(faction if faction != "" else CORE, INFO[CORE])
+
+
+## Optik-Schluessel einer Variante: Einheiten ohne eigene Grafik leihen sich die einer Schwestereinheit ("art").
+static func art(variant):
+	var a = entry(variant).get("art", "")
+	return a if a != "" else variant
 
 
 static func faction_of(player):
@@ -900,6 +917,10 @@ static func _build():
 			)
 		for row in UNITS[faction]:
 			var extras = row[9]
+			var sc = Sc1Balance.for_variant(faction + "/" + row[0])
+			var unit_cost = sc["cost"] if not sc.is_empty() else {"resource_a": row[3], "resource_b": row[4]}
+			var unit_time = sc["time"] if not sc.is_empty() else row[5]
+			var unit_stats = sc["stats"] if not sc.is_empty() else row[8]
 			_add(
 				faction,
 				row[0],
@@ -907,11 +928,12 @@ static func _build():
 					"kind": "unit",
 					"name": row[1],
 					"archetype": ARCHETYPES[row[2]],
-					"cost": {"resource_a": row[3], "resource_b": row[4]},
-					"time": row[5],
+					"cost": unit_cost,
+					"time": unit_time,
 					"at": row[6],
 					"requires": row[7],
-					"stats": row[8],
+					"stats": unit_stats,
+					"art": extras.get("art", ""),
 					"ai": extras.get("ai", false),
 					"ability": extras.get("ability", ""),
 					"cloak": extras.get("cloak", false),
@@ -981,6 +1003,7 @@ static func _add(faction, key, data):
 		"strike": {},
 		"blast": {},
 		"ai": false,
+		"art": "",
 		"later": false,
 	}
 	e.merge(data, true)
@@ -988,3 +1011,25 @@ static func _add(faction, key, data):
 	if not faction in _order:
 		_order[faction] = []
 	_order[faction].append(variant)
+
+
+## Kosten der nächsten Upgrade-Stufe ("weapons" / "armor"): {"level", "cost", "time"} (leer, wenn schon maximal).
+static func research_info(player, kind):
+	var level = player.get("upgrade_" + kind)
+	if level == null or level >= player.MAX_UPGRADE_LEVEL:
+		return {}
+	return {
+		"level": level + 1,
+		"cost": {"resource_a": 3 * (level + 1), "resource_b": 2 * (level + 1)},
+		"time": 30.0 * (level + 1)
+	}
+
+
+const GARRISON_CAPACITY = 4
+
+
+## Platz für Infanterie: Transporter (Constants) bzw. Bunker-Besatzung.
+static func cargo_capacity(unit):
+	if ability(variant_of(unit)) == "garrison":
+		return GARRISON_CAPACITY
+	return Constants.Match.Units.CARGO_CAPACITY

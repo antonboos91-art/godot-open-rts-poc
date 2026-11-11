@@ -48,6 +48,11 @@ func _ready():
 	var separation = load("res://source/match/UnitSeparation.gd").new()
 	separation.name = "UnitSeparation"
 	add_child(separation)
+	var crushing = load("res://source/match/Crushing.gd").new()
+	add_child(crushing)
+	var crates = load("res://source/match/Crates.gd").new()
+	crates.name = "Crates"
+	add_child(crates)
 	_setup_subsystems_dependent_on_map()
 	_setup_players()
 	_setup_unit_spawners()
@@ -134,6 +139,85 @@ func _execute_command(player, kind, units, args):
 			for unit in units:
 				if unit.has_method("fire_superweapon"):
 					unit.fire_superweapon(args[0])
+		"stop":
+			for unit in units:
+				unit.order_queue.clear()
+				unit.action = null
+		"attack_move":
+			if args[0] is Vector3:
+				controller.execute_attack_move(units, args[0], args.size() > 1 and args[1] == true)
+		"queue_move":
+			if args[0] is Vector3:
+				controller.execute_queue_move(units, args[0])
+		"sell":
+			for unit in units:
+				_sell_structure(player, unit)
+		"research":
+			if args[0] is String:
+				_research(player, args[0])
+		"surrender":
+			_surrender(player)
+
+
+const SELL_REFUND = 0.5
+const RESEARCH_KINDS = ["weapons", "armor"]
+var _researching = {}  # Spieler -> {Art: true}
+
+
+## Verkaufen (Generals "Sell"): fertiges eigenes Gebäude weg, halber Preis zurück.
+func _sell_structure(player, structure):
+	if not structure is Structure or not structure.is_constructed() or structure.player != player:
+		return
+	var cost = Factions.cost(Factions.variant_of(structure))
+	player.add_resources(
+		{
+			"resource_a": int(cost["resource_a"] * SELL_REFUND),
+			"resource_b": int(cost["resource_b"] * SELL_REFUND)
+		}
+	)
+	_notify(structure.global_position, "VERKAUFT")
+	structure.queue_free()
+
+
+## Upgrade im Labor erforschen: "weapons" (+15 % Schaden) oder "armor" (-13 % Schaden) je Stufe.
+func _research(player, kind):
+	if not kind in RESEARCH_KINDS:
+		return
+	var researching = _researching.get(player, {})
+	if kind in researching:
+		return
+	var has_lab = false
+	for unit in player.get_children():
+		if (
+			unit is Structure
+			and unit.is_constructed()
+			and Factions.role(Factions.variant_of(unit)) == "lab"
+		):
+			has_lab = true
+	var info = Factions.research_info(player, kind)
+	if not has_lab or info.is_empty():
+		return
+	if not player.has_resources(info["cost"]):
+		MatchSignals.not_enough_resources_for_production.emit(player)
+		return
+	player.subtract_resources(info["cost"])
+	researching[kind] = true
+	_researching[player] = researching
+	await get_tree().create_timer(info["time"] / player.production_speed_factor()).timeout
+	if not is_instance_valid(player):
+		return
+	player.set("upgrade_" + kind, player.get("upgrade_" + kind) + 1)
+	researching.erase(kind)
+	var hq = player.get_children().filter(func(u): return u is Structure)
+	if not hq.is_empty():
+		_notify(hq[0].global_position, "UPGRADE FERTIG")
+
+
+## Aufgeben: alle Einheiten und Gebäude des Spielers werden zerstört (Niederlage).
+func _surrender(player):
+	for unit in player.get_children().duplicate():
+		if unit is Unit:
+			unit.hp = 0
 
 
 func _place_structure(player, controller, workers, variant, a_transform):
@@ -181,11 +265,24 @@ func _deploy(_player, unit):
 
 ## Infanterie steigt ein: Die Einheit wird entfernt und im Transporter gespeichert.
 func board_transport(unit, transport):
-	if Network.is_client() or transport.cargo_count >= Constants.Match.Units.CARGO_CAPACITY:
+	if Network.is_client() or transport.cargo_count >= Factions.cargo_capacity(transport):
 		return
 	transport.cargo.append({"scene": unit.scene_file_path, "variant": unit.variant, "hp": unit.hp})
 	transport.cargo_count = transport.cargo.size()
+	_refresh_garrison(transport)
 	unit.queue_free()
+
+
+## Besatzung im Bunker: je Infanterist +40 % Schaden und +0,75 m Reichweite (Basiswerte als Meta gemerkt).
+func _refresh_garrison(structure):
+	if Factions.ability(Factions.variant_of(structure)) != "garrison" or structure.attack_damage == null:
+		return
+	if not structure.has_meta("base_damage"):
+		structure.set_meta("base_damage", structure.attack_damage)
+		structure.set_meta("base_range", structure.attack_range)
+	var count = structure.cargo_count
+	structure.attack_damage = structure.get_meta("base_damage") * (1.0 + 0.4 * count)
+	structure.attack_range = structure.get_meta("base_range") + 0.75 * count
 
 
 ## Der Transporter setzt alle Passagiere im Kreis um sich ab.
@@ -208,6 +305,7 @@ func _unload_transport(transport):
 		unit.hp = entry["hp"]
 	transport.cargo.clear()
 	transport.cargo_count = 0
+	_refresh_garrison(transport)
 
 
 ## Ein Ingenieur übernimmt ein Gebäude: Es wird für den neuen Besitzer neu erzeugt

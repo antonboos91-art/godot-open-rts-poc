@@ -16,6 +16,8 @@ var _buttons = {}  # Variante -> Button
 var _ability_unit = null  # Einheit/Gebäude mit Spezialknopf (Entfalten, Superwaffe)
 var _ability_button = null
 var _ability_label = null
+var _sell_target = null
+var _research_buttons = {}
 
 
 func _init():
@@ -39,6 +41,7 @@ func show_production(structure):
 	_player = structure.player
 	_producer = structure
 	_build(variants)
+	_add_sell_button(structure)
 	show()
 	return true
 
@@ -47,7 +50,7 @@ func show_production(structure):
 func show_ability(unit):
 	var variant = Factions.variant_of(unit)
 	var ability = Factions.ability(variant)
-	if not ability in ["deploy", "superweapon", "transport"]:
+	if not ability in ["deploy", "superweapon", "transport", "garrison"]:
 		return false
 	if unit.has_method("is_constructed") and not unit.is_constructed():
 		return false
@@ -65,8 +68,111 @@ func show_ability(unit):
 	first_slot.queue_free()
 	add_child(_ability_button)
 	move_child(_ability_button, 1)
+	if unit.has_method("is_constructed"):
+		_add_sell_button(unit)
 	show()
 	_refresh_availability()
+	return true
+
+
+## Laborgebäude: Waffen- und Panzerungs-Upgrades (je 3 Stufen). false, wenn es kein Labor ist.
+func show_research(structure):
+	if Factions.role(Factions.variant_of(structure)) != "lab":
+		return false
+	_player = structure.player
+	_producer = null
+	_build([])
+	_research_buttons = {}
+	var slot = 0
+	for kind in ["weapons", "armor"]:
+		var button = _create_text_button("WAF" if kind == "weapons" else "RÜS", _on_research_pressed.bind(kind))
+		_research_buttons[kind] = button
+		_put_button(slot, button)
+		slot += 1
+	_add_sell_button(structure)
+	show()
+	_refresh_availability()
+	return true
+
+
+func _put_button(slot, button):
+	var old = get_child(1 + slot)  # 0 ist der Timer
+	remove_child(old)
+	old.queue_free()
+	add_child(button)
+	move_child(button, 1 + slot)
+
+
+func _create_text_button(text, on_pressed):
+	var button = Button.new()
+	button.custom_minimum_size = BUTTON_SIZE
+	button.focus_mode = Control.FOCUS_NONE
+	button.text = text
+	button.pressed.connect(on_pressed)
+	var label = Label.new()
+	label.add_theme_font_size_override("font_size", 10)
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(label)
+	return button
+
+
+## Verkaufen-Knopf (letzter Platz) für ein fertiges eigenes Gebäude, Entf-Taste tut dasselbe.
+func _add_sell_button(structure):
+	_sell_target = structure
+	var button = _create_text_button("VERK.", _on_sell_pressed)
+	button.tooltip_text = "Verkaufen (Entf): halber Preis zurück"
+	_put_button(SLOTS - 1, button)
+
+
+func _on_sell_pressed():
+	if is_instance_valid(_sell_target):
+		_sell_target.find_parent("Match").send_command("sell", [_sell_target])
+
+
+func _on_research_pressed(kind):
+	if is_instance_valid(_player):
+		_player.find_parent("Match").send_command("research", get_tree().get_nodes_in_group("selected_units").filter(func(u): return u.is_in_group("controlled_units")), [kind])
+
+
+func _refresh_research_buttons():
+	for kind in _research_buttons:
+		var button = _research_buttons[kind]
+		var info = Factions.research_info(_player, kind)
+		var label = button.get_child(0)
+		var name = "Waffen" if kind == "weapons" else "Panzerung"
+		if info.is_empty():
+			button.disabled = true
+			button.modulate = Color(0.6, 0.6, 0.6)
+			label.text = "MAX"
+			button.tooltip_text = "%s: höchste Stufe erreicht" % name
+			continue
+		var affordable = _player.has_resources(info["cost"])
+		button.disabled = not affordable
+		button.modulate = Color.WHITE if affordable else Color(0.6, 0.6, 0.6)
+		label.text = "%d/%d" % [info["cost"]["resource_a"], info["cost"]["resource_b"]]
+		button.tooltip_text = (
+			"%s-Upgrade Stufe %d: Schrott %d, Kristall %d, %d s\n%s"
+			% [
+				name,
+				info["level"],
+				info["cost"]["resource_a"],
+				info["cost"]["resource_b"],
+				int(info["time"]),
+				"+15 % Schaden je Stufe" if kind == "weapons" else "-13 % erlittener Schaden je Stufe"
+			]
+		)
+
+
+## Gebäude ohne eigenes Menü (Kraftwerk, Radar ...): nur der Verkaufen-Knopf.
+func show_sell_only(structure):
+	_player = structure.player
+	_producer = null
+	_build([])
+	_add_sell_button(structure)
+	show()
 	return true
 
 
@@ -80,6 +186,8 @@ func show_construction(player):
 
 func _build(variants):
 	_ability_unit = null
+	_sell_target = null
+	_research_buttons = {}
 	_ability_button = null
 	for child in get_children():
 		if not child is Timer:
@@ -133,6 +241,7 @@ func _refresh_availability():
 	if _ability_unit != null:
 		_refresh_ability_button()
 		return
+	_refresh_research_buttons()
 	for variant in _buttons:
 		var button = _buttons[variant]
 		var missing = Factions.missing_requirements(_player, variant)
@@ -145,12 +254,12 @@ func _refresh_ability_button():
 	if not is_instance_valid(_ability_unit) or _ability_button == null:
 		return
 	var variant = Factions.variant_of(_ability_unit)
-	if Factions.ability(variant) == "transport":
+	if Factions.ability(variant) in ["transport", "garrison"]:
 		var cargo = _ability_unit.cargo_count
 		_ability_button.disabled = cargo == 0
 		_ability_button.modulate = Color.WHITE if cargo > 0 else Color(0.6, 0.6, 0.6)
-		_ability_label.text = "%d/%d" % [cargo, Constants.Match.Units.CARGO_CAPACITY]
-		_ability_button.tooltip_text = "Absetzen (Infanterie anklicken zum Einsteigen)"
+		_ability_label.text = "%d/%d" % [cargo, Factions.cargo_capacity(_ability_unit)]
+		_ability_button.tooltip_text = "Absetzen (Infanterie anklicken zum Einsteigen)" if Factions.ability(variant) == "transport" else "Besatzung aussteigen lassen (Infanterie anklicken zum Einsteigen: +40 % Schaden je Soldat)"
 		return
 	if Factions.ability(variant) == "deploy":
 		_ability_button.tooltip_text = (
@@ -172,7 +281,7 @@ func _on_ability_pressed():
 	if not is_instance_valid(_ability_unit):
 		return
 	var ability = Factions.ability(Factions.variant_of(_ability_unit))
-	if ability == "transport":
+	if ability in ["transport", "garrison"]:
 		_ability_unit.find_parent("Match").send_command("unload", [_ability_unit])
 	elif ability == "deploy":
 		_ability_unit.find_parent("Match").send_command("deploy", [_ability_unit])

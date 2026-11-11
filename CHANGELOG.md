@@ -3,6 +3,9 @@
 ## [main]
 
 ### New features
+ - Balancing aller drei Völker nach StarCraft: Brood War (siehe BALANCING_SC1.md), je 15 Einheiten
+ - Viel mehr Rohstoff-Felder: Ring um jede Basis, Expansionsfelder und Zentrumsfeld
+ - Aus C&C Generals: Stopp (X), Angriffs-Marsch (F), Shift-Wegpunkte, Verkaufen (Entf), Veteranen-Ränge, Waffen-/Panzerungs-Upgrades, Vorratskisten, Überrollen, Bunker-Besatzung, Aufgeben (siehe GENERALS_FEATURES.md)
  - Added structure rally points
 
 ### Changed

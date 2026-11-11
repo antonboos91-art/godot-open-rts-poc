@@ -13,10 +13,11 @@ var _sub_action = null
 static func is_applicable(source_unit, target_unit):
 	return (
 		"cargo_count" in target_unit
-		and Factions.ability(Factions.variant_of(target_unit)) == "transport"
+		and Factions.ability(Factions.variant_of(target_unit)) in ["transport", "garrison"]
 		and source_unit.player == target_unit.player
 		and source_unit.type == "Infantry"
-		and target_unit.cargo_count < Constants.Match.Units.CARGO_CAPACITY
+		and (not target_unit.has_method("is_constructed") or target_unit.is_constructed())
+		and target_unit.cargo_count < Factions.cargo_capacity(target_unit)
 	)
 
 

@@ -17,6 +17,8 @@ var hp = null:
 var hp_max = null:
 	set = _set_hp_max
 var attack_damage = null
+## Ruestung (SC1-Wert / Sc1Balance.DMG_DIV): wird von jedem Treffer abgezogen, mindestens MIN_HIT_FRACTION bleibt
+var armor = 0.0
 var attack_interval = null
 var attack_range = null
 var attack_domains = []
@@ -42,6 +44,13 @@ var type:
 	get = _get_type
 ## Volks-Variante, z. B. "shibas/tesla" (leer = Grundvolk). Siehe Factions.gd
 var variant = ""
+## Veteranen-Rang (0 = Rekrut, 1 = Veteran, 2 = Elite, 3 = Held), siehe add_kill()
+var rank = 0:
+	set = _set_rank
+var kills = 0.0
+## Wartende Befehle (Shift-Wegpunkte): [{"kind": "move" | "attack_move", "pos": Vector3}]
+var order_queue = []
+var _rank_label = null
 var display_name:
 	get:
 		return Factions.display_name(Factions.variant_of(self))
@@ -52,7 +61,7 @@ var _action_locked = false
 
 
 func _init():
-	var replicated_properties = [":variant", ":position", ":rotation", ":hp", ":hp_max"]
+	var replicated_properties = [":variant", ":position", ":rotation", ":hp", ":hp_max", ":rank"]
 	if "_construction_progress" in self:
 		replicated_properties.append(":_construction_progress")
 	if "cargo_count" in self:
@@ -150,6 +159,8 @@ func _setup_color():
 
 
 func _set_action(action_node):
+	if action_node == null and not order_queue.is_empty() and not _action_locked and is_inside_tree() and not Network.is_client():
+		action_node = _next_queued_action()
 	# Aktionen (Bewegen, Angreifen, ...) laufen nur auf dem Host.
 	if not is_inside_tree() or _action_locked or Network.is_client():
 		if action_node != null:
@@ -278,3 +289,90 @@ func _explode():
 	for unit in get_tree().get_nodes_in_group("units"):
 		if unit != self and unit.global_position_yless.distance_to(center) <= blast["radius"]:
 			unit.hp = unit.hp - blast["damage"] * Factions.HP_FACTOR
+
+
+# --- Treffer, Veteranen-Raenge, Upgrades, Befehlswarteschlange -------------------------------
+
+const MIN_HIT = 0.083  # SC1: jeder Treffer macht mindestens 0,5 Schaden (0,5 / DMG_DIV)
+const RANK_DAMAGE = [1.0, 1.25, 1.5, 2.0]
+const RANK_HP = [1.0, 1.25, 1.5, 2.0]
+const RANK_KILLS = [6.0, 16.0, 32.0]  # Kill-Punkte (Kosten des Opfers) bis Veteran / Elite / Held
+const UPGRADE_STEP = 0.15
+const RANK_NAMES = ["", "VETERAN", "ELITE", "HELD"]
+const MovingAction = preload("res://source/match/units/actions/Moving.gd")
+const AttackMovingAction = preload("res://source/match/units/actions/AttackMoving.gd")
+
+
+## Trifft diese Einheit mit "damage" (Ruestung, Upgrades und Raenge des Angreifers/Verteidigers eingerechnet).
+func take_hit(damage, attacker = null):
+	var dealt = damage
+	if attacker != null and is_instance_valid(attacker) and "rank" in attacker:
+		dealt *= RANK_DAMAGE[clampi(attacker.rank, 0, 3)]
+		if attacker.player != null and "upgrade_weapons" in attacker.player:
+			dealt *= 1.0 + UPGRADE_STEP * attacker.player.upgrade_weapons
+	dealt = max(MIN_HIT, dealt - armor)
+	if player != null and "upgrade_armor" in player:
+		dealt /= 1.0 + UPGRADE_STEP * player.upgrade_armor
+	var was_alive = hp != null and hp > 0
+	hp -= dealt
+	if was_alive and hp <= 0 and attacker != null and is_instance_valid(attacker):
+		if attacker.has_method("add_kill") and attacker.player != null and not attacker.player.is_ally_of(player):
+			attacker.add_kill(self)
+
+
+## Kill-Punkte fuer einen besiegten Gegner; genug Punkte befoerdern die Einheit.
+func add_kill(victim):
+	if has_method("is_constructed") or Network.is_client():
+		return
+	var cost = Factions.cost(Factions.variant_of(victim))
+	kills += max(1.0, cost["resource_a"] + 1.5 * cost["resource_b"])
+	while rank < 3 and kills >= RANK_KILLS[rank]:
+		_promote()
+
+
+func _promote():
+	var old_factor = RANK_HP[rank]
+	rank += 1
+	var ratio = RANK_HP[rank] / old_factor
+	hp_max *= ratio
+	hp = min(hp_max, hp * ratio + hp_max * 0.25)
+	if _match != null:
+		_match._notify(global_position, RANK_NAMES[rank])
+
+
+func _set_rank(value):
+	rank = value
+	if rank <= 0 or not is_inside_tree() or DisplayServer.get_name() == "headless":
+		return
+	if _rank_label == null:
+		_rank_label = Label3D.new()
+		_rank_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_rank_label.no_depth_test = true
+		_rank_label.pixel_size = 0.012
+		_rank_label.font_size = 40
+		_rank_label.outline_size = 8
+		_rank_label.position = Vector3(0, 2.7, 0)
+		add_child(_rank_label)
+	_rank_label.text = "★".repeat(rank)
+	_rank_label.modulate = [Color.WHITE, Color(0.75, 0.9, 1.0), Color(1.0, 0.85, 0.25), Color(1.0, 0.35, 0.2)][clampi(rank, 0, 3)]
+
+
+## Haengt einen Befehl hinten an (Shift-Wegpunkt); startet ihn sofort, wenn die Einheit untaetig ist.
+func queue_order(order):
+	order_queue.append(order)
+	if action == null or (action.has_method("is_idle") and action.is_idle()):
+		action = null  # _set_action zieht den ersten wartenden Befehl
+
+
+func _next_queued_action():
+	var order = order_queue.pop_front()
+	if order["kind"] == "attack_move":
+		return AttackMovingAction.new(order["pos"])
+	return MovingAction.new(order["pos"])
+
+
+## Befoerderung um genau einen Rang (Vorratskiste).
+func grant_promotion():
+	if rank < 3 and not has_method("is_constructed"):
+		kills = max(kills, RANK_KILLS[rank])
+		_promote()

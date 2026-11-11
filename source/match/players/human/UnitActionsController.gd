@@ -16,7 +16,10 @@ class Actions:
 	const Capturing = preload("res://source/match/units/actions/Capturing.gd")
 	const Repairing = preload("res://source/match/units/actions/Repairing.gd")
 	const Loading = preload("res://source/match/units/actions/Loading.gd")
+	const AttackMoving = preload("res://source/match/units/actions/AttackMoving.gd")
 
+
+var _attack_move_armed = false
 
 @onready var _player = get_parent()
 @onready var _match = find_parent("Match")
@@ -34,8 +37,58 @@ func _ready():
 
 ## Befehle, die der Host ausführt. `units` gehören garantiert dem Spieler.
 func execute_terrain_targeted(units, target_point):
+	for unit in units:
+		unit.order_queue.clear()
 	_try_navigating_units_towards_position(units, target_point)
 	_try_setting_rally_points(units, target_point)
+
+
+## Angriffs-Marsch: zum Punkt gehen und unterwegs alles angreifen (Taste F, danach Rechtsklick).
+## Mit queued = true wird der Marsch an die wartenden Befehle angehängt.
+func execute_attack_move(units, target_point, queued = false):
+	var movers = units.filter(func(unit): return Actions.AttackMoving.is_applicable(unit))
+	var targets = []
+	for domain in [Constants.Match.Navigation.Domain.TERRAIN, Constants.Match.Navigation.Domain.AIR]:
+		targets += Utils.Match.Unit.Movement.crowd_moved_to_new_pivot(
+			movers.filter(func(unit): return unit.movement_domain == domain), target_point
+		)
+	for tuple in targets:
+		if queued:
+			tuple[0].queue_order({"kind": "attack_move", "pos": tuple[1]})
+		else:
+			tuple[0].order_queue.clear()
+			tuple[0].action = Actions.AttackMoving.new(tuple[1])
+
+
+## Shift + Rechtsklick: Wegpunkt an die Befehlsliste anhängen.
+func execute_queue_move(units, target_point):
+	var movers = units.filter(func(unit): return Actions.Moving.is_applicable(unit))
+	var targets = []
+	for domain in [Constants.Match.Navigation.Domain.TERRAIN, Constants.Match.Navigation.Domain.AIR]:
+		targets += Utils.Match.Unit.Movement.crowd_moved_to_new_pivot(
+			movers.filter(func(unit): return unit.movement_domain == domain), target_point
+		)
+	for tuple in targets:
+		tuple[0].queue_order({"kind": "move", "pos": tuple[1]})
+
+
+func _unhandled_input(event):
+	if not _player.is_local() or not event is InputEventKey or not event.pressed or event.echo:
+		return
+	if event.ctrl_pressed or event.alt_pressed or event.meta_pressed:
+		return
+	match event.physical_keycode:
+		KEY_X:  # Stopp
+			_match.send_command("stop", _get_selected_controlled_units())
+		KEY_F:  # Angriffs-Marsch: nächster Rechtsklick auf das Gelände
+			_attack_move_armed = not _attack_move_armed
+			var armed_units = _get_selected_controlled_units()
+			if _attack_move_armed and not armed_units.is_empty():
+				_match.show_notice(armed_units[0].global_position, "ANGRIFFS-MARSCH: ZIEL WÄHLEN")
+		KEY_DELETE:  # Verkaufen
+			var structures = _get_selected_controlled_units().filter(func(u): return u is Structure)
+			if not structures.is_empty():
+				_match.send_command("sell", structures)
 
 
 func execute_unit_targeted(units, target_unit):
@@ -154,7 +207,15 @@ func _try_setting_rally_point_to_unit(unit, target_unit):
 
 
 func _on_terrain_targeted(position):
-	_match.send_command("terrain", _get_selected_controlled_units(), [position])
+	var units = _get_selected_controlled_units()
+	var queued = Input.is_action_pressed("shift_selecting")
+	if _attack_move_armed:
+		_attack_move_armed = false
+		_match.send_command("attack_move", units, [position, queued])
+	elif queued:
+		_match.send_command("queue_move", units, [position])
+	else:
+		_match.send_command("terrain", units, [position])
 
 
 func _on_unit_targeted(unit):

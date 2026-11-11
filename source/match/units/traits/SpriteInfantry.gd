@@ -3,6 +3,7 @@
 ## assets/sprites/infantry/<volk>_<variante>.json  {"dirs", "frame", "columns", "clips": {name: [start, n]}, ...}
 ## Clips: idle, walk (Schleife), shoot (beim Feuern), die (Leiche bleibt kurz liegen).
 extends Node3D
+const Factions = preload("res://source/match/factions/Factions.gd")
 
 const SHADER = preload("res://source/shaders/3d/vehicle_sprite.gdshader")
 const DIR = "res://assets/sprites/infantry/"
@@ -34,7 +35,7 @@ var _idle_wait = 4.0
 static func sheet_base_for(variant):
 	if variant == "":
 		return ""
-	var base = DIR + variant.replace("/", "_")
+	var base = DIR + Factions.art(variant).replace("/", "_")
 	return base if ResourceLoader.exists(base + ".png") and FileAccess.file_exists(base + ".json") else ""
 
 

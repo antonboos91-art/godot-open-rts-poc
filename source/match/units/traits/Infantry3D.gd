@@ -2,6 +2,7 @@
 ## Enthält die 6 Clips: idle, walk, shoot, die, idle_a, idle_b.
 ## Dreht sich stufenlos in Lauf- bzw. Schussrichtung und wirft echte 3D-Schatten.
 extends Node3D
+const Factions = preload("res://source/match/factions/Factions.gd")
 
 const FIGURE_HEIGHT = 1.9
 const MOVE_SPEED_THRESHOLD = 0.25
@@ -30,7 +31,7 @@ var _current_clip := ""
 static func glb_for(variant: String) -> String:
 	if variant == "":
 		return ""
-	var p = "res://assets/models/infantry/" + variant.replace("/", "_") + ".glb"
+	var p = "res://assets/models/infantry/" + Factions.art(variant).replace("/", "_") + ".glb"
 	return p if ResourceLoader.exists(p) else ""
 
 

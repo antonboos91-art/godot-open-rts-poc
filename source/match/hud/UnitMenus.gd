@@ -42,7 +42,9 @@ func _try_showing_any_menu():
 		and selected_controlled_units[0].is_constructed()
 		and (
 			_faction_menu.show_production(selected_controlled_units[0])
+			or _faction_menu.show_research(selected_controlled_units[0])
 			or _faction_menu.show_ability(selected_controlled_units[0])
+			or _faction_menu.show_sell_only(selected_controlled_units[0])
 		)
 	):
 		return true

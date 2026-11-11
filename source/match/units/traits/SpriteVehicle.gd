@@ -41,7 +41,7 @@ var _rotors = []
 static func sprite_base_for(variant):
 	if variant == "":
 		return ""
-	var base = DIR + variant.replace("/", "_")
+	var base = DIR + Factions.art(variant).replace("/", "_")
 	return base if ResourceLoader.exists(base + "_hull.png") else ""
 
 
@@ -71,7 +71,7 @@ func _setup_sprites(unit, base):
 	var center_y = float(_meta.get("target_z", 0.45)) * _s()
 	if bool(_meta.get("air", false)):
 		center_y = 0.0  # Fluggeräte: Einheitenursprung liegt schon in Flughöhe
-	var model_path = MODEL_DIR + unit.variant.replace("/", "_") + ".glb"
+	var model_path = MODEL_DIR + Factions.art(unit.variant).replace("/", "_") + ".glb"
 	if ResourceLoader.exists(model_path):
 		_setup_model(model_path)
 	else:

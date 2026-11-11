@@ -79,7 +79,7 @@ const MODEL_DIR = "res://assets/models/factions/"
 static func model_path_for(variant):
 	if variant == "":
 		return ""
-	var path = MODEL_DIR + variant.replace("/", "_") + ".glb"
+	var path = MODEL_DIR + Factions.art(variant).replace("/", "_") + ".glb"
 	return path if ResourceLoader.exists(path) else ""
 
 
@@ -116,14 +116,14 @@ static func _attach_model(unit, path):
 static func anim_path_for(variant):
 	if variant == "":
 		return ""
-	var path = SPRITE_DIR + variant.replace("/", "_") + "_anim.png"
+	var path = SPRITE_DIR + Factions.art(variant).replace("/", "_") + "_anim.png"
 	return path if ResourceLoader.exists(path) else ""
 
 
 ## Sprite der Volks-Variante (z. B. shibas_tesla.png), sonst das des Archetyps.
 static func sprite_path_for(variant, type):
 	if variant != "":
-		var variant_path = SPRITE_DIR + variant.replace("/", "_") + ".png"
+		var variant_path = SPRITE_DIR + Factions.art(variant).replace("/", "_") + ".png"
 		if ResourceLoader.exists(variant_path):
 			return variant_path
 	var type_path = SPRITE_DIR + type + ".png"

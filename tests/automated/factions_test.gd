@@ -84,11 +84,11 @@ func _run():
 		var units_before = _own(me).size()
 		var scrap_before = me.resource_a
 		barracks.production_queue.produce("shibas/zapper")
-		_check(me.resource_a == scrap_before - 2, "Zapper costs 2 scrap")
+		_check(me.resource_a == scrap_before - Factions.cost("shibas/zapper")["resource_a"], "Zapper costs its SC1 (Firebat) scrap price")
 		var produced = await _wait_until(func(): return _own(me).size() > units_before, 8.0)
 		_check(produced, "barracks produced a unit")
 		var newest = _own(me).filter(func(u): return u.variant == "shibas/zapper")
-		_check(newest.size() == 1 and newest[0].attack_damage == 3, "Zapper has its own stats")
+		_check(newest.size() == 1 and is_equal_approx(newest[0].attack_damage, 16.0 / 6.0), "Zapper has Firebat damage (16 SC1 / 6)")
 
 	# Shibas haben eigene Sprites je Variante
 	var sprite_path = load("res://source/match/units/traits/PixelSprite.gd").sprite_path_for(
@@ -150,7 +150,7 @@ func _run():
 
 	# Bau-Mobil entfaltet sich zur Zentrale
 	var hqs_before = _own(me).filter(func(u): return u.variant == "shibas/hq").size()
-	var mcv = _spawn_unit(me, "shibas/baumobil", hq.global_position + Vector3(14, 0, -4))
+	var mcv = _spawn_unit(me, "shibas/baumobil", hq.global_position + Vector3(-11, 0, -8))
 	await _frames(3)
 	_match.send_command("deploy", [mcv])
 	await _frames(5)
@@ -224,7 +224,7 @@ func _run():
 	# Strom frei machen: die Satelliten-Station abreißen, sonst ist das Netz überlastet
 	sw.queue_free()
 	await _frames(3)
-	var crash = _spawn_structure(me, "katzen/superweapon", hq.global_position + Vector3(-12, 0, 8))
+	var crash = _spawn_structure(me, "katzen/superweapon", hq.global_position + Vector3(-14, 0, 0))
 	await _frames(3)
 	var crash_target = _own(enemy).filter(func(u): return u.variant == "katzen/hq")[0]
 	crash.charge_progress = 1.0
@@ -306,7 +306,7 @@ func _run():
 	# Bären-Kraftwerke explodieren und beschädigen Nachbarn
 	var boom_power = _spawn_structure(players[2], "baeren/power_big", Vector3(-20, 0, 20))
 	# Verbuendeter Panzer des Besitzers: greift das Kraftwerk nicht an (sonst Wettlauf mit dem Angriffs-Timer)
-	var neighbour = _spawn_unit(players[2], "baeren/grizzly", Vector3(-20, 0, 22))
+	var neighbour = _spawn_unit(players[2], "baeren/kodiak", Vector3(-20, 0, 22))
 	await _frames(3)
 	var neighbour_hp = neighbour.hp
 	boom_power.hp = 0
