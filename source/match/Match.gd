@@ -42,6 +42,12 @@ func _enter_tree():
 
 func _ready():
 	MatchSignals.setup_and_spawn_unit.connect(_setup_and_spawn_unit)
+	# HUD im StarCraft-Stil (Paneele, Auswahlfeld, Portraet, Ressourcen)
+	find_child("HUD", false, false).add_child(load("res://source/match/hud/HudSkin.gd").new())
+	# Einheiten-Kollision (schieben sich gegenseitig auseinander)
+	var separation = load("res://source/match/UnitSeparation.gd").new()
+	separation.name = "UnitSeparation"
+	add_child(separation)
 	_setup_subsystems_dependent_on_map()
 	_setup_players()
 	_setup_unit_spawners()
