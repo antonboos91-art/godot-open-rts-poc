@@ -1,6 +1,8 @@
 // Vorgerenderte Fahrzeug-Sprites (Factorio-Prinzip): Spalten = Blickrichtungen, Zeilen = Animationsframes.
 // Das Quad zeigt immer zur Kamera; weiche Alphakante und gerenderter Schatten bleiben erhalten.
 shader_type spatial;
+// Globale Helligkeit fuer unbeleuchtete Sprites (Stimmung, Tag/Nacht), siehe project.godot [shader_globals]
+global uniform vec4 sprite_light;
 render_mode unshaded, cull_disabled, shadows_disabled, skip_vertex_transform, depth_prepass_alpha, blend_mix;
 
 uniform sampler2D sheet : source_color, filter_linear_mipmap;
@@ -29,7 +31,7 @@ void fragment() {
 	vec3 rgb = c.rgb / max(c.a, 0.001);
 	// Der gerenderte Bodenschatten (schwarz, teiltransparent) wird weich eingeblendet statt als schwarzer Fleck
 	bool is_shadow = (rgb.r + rgb.g + rgb.b) < 0.09 && c.a < 0.95;
-	ALBEDO = rgb * brightness + vec3(flash);
+	ALBEDO = rgb * brightness * sprite_light.rgb + vec3(flash);
 	if (is_shadow) {
 		ALPHA = c.a * 0.45;
 	} else if (c.a < 0.5) {

@@ -1,6 +1,8 @@
 // Pixel-Art-Sprite, das immer zur Kamera zeigt.
 // Magenta-Pixel (r == b, g == 0) werden durch die Teamfarbe ersetzt.
 shader_type spatial;
+// Globale Helligkeit fuer unbeleuchtete Sprites (Stimmung, Tag/Nacht), siehe project.godot [shader_globals]
+global uniform vec4 sprite_light;
 render_mode unshaded, cull_disabled, shadows_disabled, skip_vertex_transform;
 
 uniform sampler2D sheet : source_color, filter_nearest;
@@ -37,5 +39,5 @@ void fragment() {
 		vec3 holo = vec3(0.2, 0.9, 1.0) * dot(c.rgb, vec3(0.33)) * 1.6;
 		c.rgb = mix(holo * (0.6 + 0.4 * scan), c.rgb, filled);
 	}
-	ALBEDO = c.rgb * brightness;
+	ALBEDO = c.rgb * brightness * sprite_light.rgb;
 }

@@ -9,6 +9,7 @@ uniform vec2 map_size = vec2(50.0, 50.0);
 uniform float seed = 0.0;
 uniform float tile_size = 7.0;  // Weltmeter je Texturkachel
 uniform float normal_strength = 0.9;
+uniform float brightness = 1.8;
 uniform vec3 border_color : source_color = vec3(0.04, 0.07, 0.04);
 
 uniform sampler2D grass_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -92,7 +93,7 @@ void fragment() {
 	nrm = mix(nrm, sample2(mud_normal, uv_a, uv_b, k).rgb, w_mud);
 
 	// grossflaechige Helligkeitsvariation
-	col *= 0.85 + 0.3 * fbm(p * 0.04 + 9.0);
+	col *= (0.85 + 0.3 * fbm(p * 0.04 + 9.0)) * brightness;
 
 	// Kartenrand: dunkler Waldboden
 	float edge = min(min(p.x, map_size.x - p.x), min(p.y, map_size.y - p.y));

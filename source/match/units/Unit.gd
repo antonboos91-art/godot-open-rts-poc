@@ -70,6 +70,7 @@ func _ready():
 		await _match.ready
 	_setup_color()
 	PixelSprite.try_attach(self)
+	load("res://source/match/units/traits/UnitLights.gd").attach(self)
 	_setup_default_properties_from_constants()
 	assert(_safety_checks())
 

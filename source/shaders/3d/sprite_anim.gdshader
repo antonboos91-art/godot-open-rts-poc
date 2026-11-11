@@ -1,6 +1,8 @@
 // Hochaufgeloeste Animations-Sprites (KI-Konzeptbilder, freigestellt), immer zur Kamera gedreht.
 // Spiegelt bei Bedarf (flip) und malt einen Teamfarben-Ring unter die Fuesse.
 shader_type spatial;
+// Globale Helligkeit fuer unbeleuchtete Sprites (Stimmung, Tag/Nacht), siehe project.godot [shader_globals]
+global uniform vec4 sprite_light;
 render_mode unshaded, cull_disabled, shadows_disabled, skip_vertex_transform;
 
 uniform sampler2D sheet : source_color, filter_linear;
@@ -46,5 +48,6 @@ void fragment() {
 			ALBEDO += vec3(0.4, 0.9, 1.0) * edge * 1.5;
 			ALBEDO *= 0.9 + 0.1 * sin(UV.y * 220.0 + TIME * 6.0) * (1.0 - filled);
 		}
+		ALBEDO *= sprite_light.rgb;
 	}
 }

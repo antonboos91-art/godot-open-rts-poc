@@ -3,16 +3,17 @@
 Danach tools/make_ground_textures.py (kachelbar machen, Normal-Map, nach assets/textures/ground)."""
 import json, urllib.request, sys
 
-seed = int(sys.argv[1]) if len(sys.argv) > 1 else 900
-STYLE = ("Seamless tileable texture, straight top-down orthographic view of the ground, flat even overcast lighting, no shadows, "
+seed = int(sys.argv[1]) if len(sys.argv) > 1 else 1300
+STYLE = ("Seamless tileable texture, straight top-down orthographic view of the ground, flat even overcast lighting, no cast shadows, dark gritty realistic, "
          "no horizon, no perspective, no objects, high detail photographic PBR albedo texture for a real-time strategy game, 4k.")
 KINDS = {
-    "grass": "short dense green meadow grass with a few small clover leaves and tiny pebbles",
-    "drygrass": "dry yellow-green trampled grass with patches of soil showing through",
-    "dirt": "brown packed dirt soil with small stones, tire-worn, slightly cracked",
-    "rock": "grey rough rocky ground with cracks, gravel and small craters",
-    "sand": "light beige sand with gentle ripples and a few small pebbles",
-    "mud": "dark wet brown mud with puddle stains and tracks",
+    # Rollen bleiben (grass = Grundschicht usw.), Inhalt: zerstoerte Kriegserde im Stil von Dark Reign
+    "grass": "dark dead withered brown grass and dry soil, war-torn wasteland ground, muted desaturated colors",
+    "drygrass": "grey ash and soot covered ground with burnt grass stubble and charcoal bits",
+    "dirt": "dark cracked dry mud earth with deep cracks, dusty, desaturated",
+    "rock": "dark grey rubble, broken concrete chunks and gravel on dirt",
+    "sand": "scorched blackened earth with burn marks and small shell craters",
+    "mud": "dark wet churned mud with tank track ruts and puddles",
 }
 for i, (name, desc) in enumerate(KINDS.items()):
     w = {

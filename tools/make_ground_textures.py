@@ -5,7 +5,7 @@ import sys, os
 import numpy as np
 from PIL import Image
 
-AUSWAHL = {"grass": 1, "drygrass": 1, "dirt": 2, "rock": 2, "sand": 1, "mud": 2}
+AUSWAHL = {"grass": 1, "drygrass": 1, "dirt": 2, "rock": 1, "sand": 2, "mud": 2}
 src, dst = sys.argv[1], sys.argv[2]
 os.makedirs(dst, exist_ok=True)
 

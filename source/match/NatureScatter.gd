@@ -5,11 +5,15 @@
 extends RefCounted
 
 const DIR = "res://assets/sprites/nature/"
-const TREES = ["pine_a", "pine_b", "pine_c", "pine_a", "pine_b", "oak_a", "oak_b", "dead_a"]
-const ROCKS = ["rock_a", "rock_b", "rock_c"]
-## Bildgroesse in Weltmetern und Bildzeile des Fusspunkts (von oben, 256 px Bild)
-const TREE_WORLD_SIZE = 5.2 * 0.62
-const FOOT_ROW = 184.0
+const TREES = ["dead_a", "dead_b", "burnt_a", "burnt_b", "pine_a", "pine_b", "oak_a", "dead_a", "burnt_a"]
+const ROCKS = ["rock_a", "rock_b", "rock_c", "rock_a", "wreck_a"]
+const SHADER = preload("res://source/shaders/3d/nature_sprite.gdshader")
+## Bildgroesse in Weltmetern; Fusspunkt liegt bei FOOT_FRAC der Bildhoehe (tools/make_nature_sprites.py)
+const TREE_WORLD_SIZE = 3.4
+const FOOT_FRAC = 0.93
+## Wind: wie stark sich eine Art wiegt
+const SWAY = {"dead": 0.5, "burnt": 0.6, "pine": 1.0, "oak": 1.0, "bush": 0.7, "rock": 0.0, "wreck": 0.0}
+static var _materials = {}
 const SPAWN_CLEARANCE = 15.0
 const RESOURCE_CLEARANCE = 3.0
 
@@ -76,7 +80,7 @@ static func populate(map):
 		var rock = rng.randf() < 0.55
 		if _clear(pos, keep_out, placed, 2.0 if rock else 1.0):
 			placed.append(pos)
-			_add_sprite(holder, pos, "rock_" + ["a", "b", "c"][rng.randi() % 3] if rock else "bush_a", 2.2 if rock else 1.8, rng, rock)
+			_add_sprite(holder, pos, ROCKS[rng.randi() % ROCKS.size()] if rock else ["bush_a", "bush_b"][rng.randi() % 2], 2.6 if rock else 2.0, rng, rock)
 
 
 static func _keep_out_points(map):
@@ -138,20 +142,16 @@ static func _add_tree(holder, pos, rng, solid):
 
 
 static func _add_sprite(holder, pos, name, size, rng, solid):
-	var sprite = Sprite3D.new()
-	sprite.texture = _texture(name)
-	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	sprite.shaded = false
-	sprite.double_sided = true
-	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_OPAQUE_PREPASS
-	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	sprite.pixel_size = size / 256.0
-	# Fusspunkt des Bildes auf den Boden setzen
-	sprite.offset = Vector2(0, FOOT_ROW - 128.0)
+	var sprite = MeshInstance3D.new()
+	var quad = QuadMesh.new()
+	quad.size = Vector2(size, size)
+	quad.center_offset = Vector3(0, size * (FOOT_FRAC - 0.5), 0)
+	sprite.mesh = quad
+	sprite.material_override = _material(name)
 	sprite.position = Vector3(pos.x, 0, pos.y)
+	sprite.scale = Vector3(-1 if rng.randf() < 0.5 else 1, 1, 1)
 	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	if rng.randf() < 0.5:
-		sprite.flip_h = true
+	sprite.extra_cull_margin = size
 	holder.add_child(sprite)
 	if solid:
 		var body = StaticBody3D.new()
@@ -169,6 +169,16 @@ static func _add_sprite(holder, pos, name, size, rng, solid):
 		body.add_to_group("terrain_navigation_input")
 		holder.add_child(body)
 	return sprite
+
+
+static func _material(name):
+	if not _materials.has(name):
+		var m = ShaderMaterial.new()
+		m.shader = SHADER
+		m.set_shader_parameter("tex", _texture(name))
+		m.set_shader_parameter("sway", SWAY.get(name.split("_")[0], 0.5))
+		_materials[name] = m
+	return _materials[name]
 
 
 static func _texture(name):

@@ -145,11 +145,9 @@ func _make_emitter(c_start, c_end, lifetime, size_min, size_max, speed_min, spee
 	var material = StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	material.vertex_color_use_as_albedo = true
 	material.albedo_texture = _soft()
-	material.no_depth_test = true
-	material.render_priority = 5
 	quad.material = material
 	p.mesh = quad
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
