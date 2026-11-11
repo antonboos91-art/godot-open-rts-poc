@@ -1,41 +1,51 @@
+## Ansagen der Zentrale, je Volk eigene Stimme (FactionVoices.gd, Paket "announcer"):
+## Shibas "Welcome back, Mother Wolf", Katzen "Welcome back, Meowmander", Baeren "Welcome back, Bearmander".
+## Angriffsmeldungen kommen nur, wenn wirklich ein Gegner in der Naehe ist, und sagen, was angegriffen
+## wird: die Basis (Gebaeude), der Sammler oder die Truppen. Fehlt einem Volk eine Zeile, spricht die
+## alte Standard-Sprecherin.
 extends Node
 
 const Structure = preload("res://source/match/units/Structure.gd")
 const Factions = preload("res://source/match/factions/Factions.gd")
-const ShibaVoices = preload("res://source/match/players/human/ShibaVoices.gd")
+const FactionVoices = preload("res://source/match/players/human/FactionVoices.gd")
 
+## So nah muss ein Gegner sein, damit Schaden als Angriff gemeldet wird
+const ENEMY_NEAR_M = 16.0
+## Pausen je Ansage, damit die Zentrale nicht dauernd dasselbe sagt
+const COOLDOWN_MS = {
+	"base_under_attack": 20000,
+	"harvester_under_attack": 20000,
+	"unit_under_attack": 25000,
+	"unit_lost": 8000,
+	"building_lost": 5000,
+	"insufficient_funds": 6000,
+	"building": 4000,
+	"low_power": 15000,
+}
 
-const UNDER_ATTACK_NOTIFICATION_THRESHOLD_MS = 10 * 1000
-
-var _last_event_handled = null
-var _last_under_attack_notification_timestamp = 0
+var _last_key_ms = {}
 var _was_low_power = false
 var _superweapon_was_ready = false
+var _finished = false
 
 @onready var _audio_player = find_child("AudioStreamPlayer")
 @onready var _player = get_parent()
 
 
 func _ready():
-	MatchSignals.match_started.connect(
-		_handle_event.bind(Constants.Match.VoiceNarrator.Events.MATCH_STARTED)
-	)
-	MatchSignals.match_aborted.connect(
-		_handle_event.bind(Constants.Match.VoiceNarrator.Events.MATCH_ABORTED)
-	)
-	MatchSignals.match_finished_with_victory.connect(
-		_handle_event.bind(Constants.Match.VoiceNarrator.Events.MATCH_FINISHED_WITH_VICTORY)
-	)
-	MatchSignals.match_finished_with_defeat.connect(
-		_handle_event.bind(Constants.Match.VoiceNarrator.Events.MATCH_FINISHED_WITH_DEFEAT)
-	)
+	var events = Constants.Match.VoiceNarrator.Events
+	MatchSignals.match_started.connect(func(): _say("welcome", events.MATCH_STARTED, true))
+	MatchSignals.match_aborted.connect(func(): _say("mission_failed", events.MATCH_ABORTED, true))
+	MatchSignals.match_finished_with_victory.connect(_on_finished.bind(true))
+	MatchSignals.match_finished_with_defeat.connect(_on_finished.bind(false))
 	MatchSignals.unit_damaged.connect(_on_unit_damaged)
 	MatchSignals.unit_died.connect(_on_unit_died)
-	MatchSignals.unit_production_started.connect(_on_production_started)
 	MatchSignals.unit_production_finished.connect(_on_production_finished)
 	MatchSignals.not_enough_resources_for_production.connect(_on_not_enough_resources)
 	MatchSignals.not_enough_resources_for_construction.connect(_on_not_enough_resources)
 	MatchSignals.unit_construction_finished.connect(_on_construction_finished)
+	MatchSignals.place_structure.connect(func(_variant): _say("building"))
+	MatchSignals.superweapon_targeting_requested.connect(func(_s): _say("select_target", null, true))
 	var timer = Timer.new()
 	timer.wait_time = 1.0
 	timer.autostart = true
@@ -43,110 +53,108 @@ func _ready():
 	add_child(timer)
 
 
-## Ansagen der Shibas (Funkstimme) statt der Standard-Sprecherin
-func _shiba_announcer_key(event):
-	var events = Constants.Match.VoiceNarrator.Events
-	return {
-		events.BASE_UNDER_ATTACK: "base_under_attack",
-		events.UNIT_LOST: "unit_lost",
-		events.UNIT_CONSTRUCTION_FINISHED: "construction_complete",
-		events.UNIT_PRODUCTION_FINISHED: "training_complete",
-		events.NOT_ENOUGH_RESOURCES: "treat_supplies_low_please_resupply",
-	}.get(event, "")
+func _line(key):
+	var announcer = FactionVoices.LINES.get(Factions.faction_of(_player), {}).get("announcer", {})
+	var lines = announcer.get(key, [])
+	return lines[0] if not lines.is_empty() else null
 
 
-func _is_shibas():
-	return Factions.faction_of(_player) == Factions.SHIBAS
-
-
-func _play_shiba(key):
-	var lines = ShibaVoices.LINES.get("announcer", {}).get(key, [])
-	if lines.is_empty():
-		return false
-	_audio_player.stream = lines[0]
+## Ansage abspielen; event = Standard-Sprecherin, falls das Volk keine eigene Zeile hat
+func _say(key, event = null, interrupt = false):
+	if _finished:
+		return
+	var now = Time.get_ticks_msec()
+	if now - _last_key_ms.get(key, -999999) < COOLDOWN_MS.get(key, 1500):
+		return
+	if _audio_player.playing and not interrupt:
+		return
+	var stream = _line(key)
+	if stream == null:
+		if event == null:
+			return
+		stream = Constants.Match.VoiceNarrator.EVENT_TO_ASSET_MAPPING[event]
+	_last_key_ms[key] = now
+	_audio_player.stream = stream
 	_audio_player.play()
-	return true
 
 
-## Strommangel und geladene Superwaffe ansagen (nur beim Wechsel)
+func _on_finished(victory):
+	var events = Constants.Match.VoiceNarrator.Events
+	if victory:
+		_say("mission_accomplished", events.MATCH_FINISHED_WITH_VICTORY, true)
+	else:
+		_say("mission_failed", events.MATCH_FINISHED_WITH_DEFEAT, true)
+	_finished = true
+
+
+## true, wenn eine feindliche Einheit oder ein feindliches Gebaeude in der Naehe ist
+func _enemy_near(unit):
+	var p = unit.global_position_yless
+	for other in get_tree().get_nodes_in_group("units"):
+		var owner_player = other.get("player")
+		if owner_player == null or owner_player.is_ally_of(_player):
+			continue
+		if other.global_position_yless.distance_to(p) <= ENEMY_NEAR_M + float(other.get("radius") if other.get("radius") != null else 0.0):
+			return true
+	return false
+
+
+func _on_unit_damaged(unit):
+	if unit.player != _player or not _enemy_near(unit):
+		return
+	var events = Constants.Match.VoiceNarrator.Events
+	if unit is Structure:
+		_say("base_under_attack", events.BASE_UNDER_ATTACK)
+	elif unit.type == "Worker":
+		_say("harvester_under_attack", events.UNIT_UNDER_ATTACK)
+	else:
+		_say("unit_under_attack", events.UNIT_UNDER_ATTACK)
+
+
+func _on_unit_died(unit):
+	if not unit.is_in_group("controlled_units"):
+		return
+	var events = Constants.Match.VoiceNarrator.Events
+	if unit is Structure:
+		_say("building_lost", events.UNIT_LOST, true)
+	else:
+		_say("unit_lost", events.UNIT_LOST)
+
+
+func _on_production_finished(_unit, producer_unit):
+	if producer_unit.player == _player:
+		_say("training_complete", Constants.Match.VoiceNarrator.Events.UNIT_PRODUCTION_FINISHED)
+
+
+func _on_construction_finished(unit):
+	if unit.player == _player:
+		_say("construction_complete", Constants.Match.VoiceNarrator.Events.UNIT_CONSTRUCTION_FINISHED)
+
+
+func _on_not_enough_resources(player):
+	if player == _player:
+		_say("insufficient_funds", Constants.Match.VoiceNarrator.Events.NOT_ENOUGH_RESOURCES)
+
+
+## Strommangel, Strom wieder da und geladene Superwaffe ansagen (nur beim Wechsel)
 func _check_power_and_superweapon():
-	if not _is_shibas():
+	if Factions.faction_of(_player) == Factions.CORE:
 		return
 	var low = _player.is_low_power()
-	if low and not _was_low_power and not _audio_player.playing:
-		_play_shiba("power_low")
+	if low and not _was_low_power:
+		_say("low_power")
+	elif not low and _was_low_power:
+		_say("power_restored")
 	_was_low_power = low
 	var ready = get_tree().get_nodes_in_group("units").any(
 		func(u):
 			return (
-				u.player == _player
+				u.get("player") == _player
 				and Factions.ability(Factions.variant_of(u)) == "superweapon"
 				and u.get("charge_progress") != null
 				and u.charge_progress >= 1.0
 			)
 	)
 	if ready and not _superweapon_was_ready:
-		_play_shiba("superweapon_ready")
+		_say("superweapon_ready", null, true)
 	_superweapon_was_ready = ready
-
-
-func _handle_event(event):
-	if (
-		_audio_player.playing
-		and (
-			_last_event_handled
-			in [
-				Constants.Match.VoiceNarrator.Events.MATCH_FINISHED_WITH_VICTORY,
-				Constants.Match.VoiceNarrator.Events.MATCH_FINISHED_WITH_DEFEAT
-			]
-		)
-	):
-		return
-	_last_event_handled = event
-	if _is_shibas() and _play_shiba(_shiba_announcer_key(event)):
-		return
-	_audio_player.stream = Constants.Match.VoiceNarrator.EVENT_TO_ASSET_MAPPING[event]
-	_audio_player.play()
-
-
-func _on_unit_damaged(unit):
-	if unit.player != _player:
-		return
-	var current_timestamp = Time.get_ticks_msec()
-	if (
-		current_timestamp - _last_under_attack_notification_timestamp
-		> UNDER_ATTACK_NOTIFICATION_THRESHOLD_MS
-	):
-		_handle_event(
-			(
-				Constants.Match.VoiceNarrator.Events.BASE_UNDER_ATTACK
-				if unit is Structure
-				else Constants.Match.VoiceNarrator.Events.UNIT_UNDER_ATTACK
-			)
-		)
-	_last_under_attack_notification_timestamp = current_timestamp
-
-
-func _on_unit_died(unit):
-	if unit.is_in_group("controlled_units"):
-		_handle_event(Constants.Match.VoiceNarrator.Events.UNIT_LOST)
-
-
-func _on_production_started(_unit_prototype, producer_unit):
-	if producer_unit.player == _player:
-		_handle_event(Constants.Match.VoiceNarrator.Events.UNIT_PRODUCTION_STARTED)
-
-
-func _on_production_finished(_unit, producer_unit):
-	if producer_unit.player == _player:
-		_handle_event(Constants.Match.VoiceNarrator.Events.UNIT_PRODUCTION_FINISHED)
-
-
-func _on_construction_finished(unit):
-	if unit.player == _player:
-		_handle_event(Constants.Match.VoiceNarrator.Events.UNIT_CONSTRUCTION_FINISHED)
-
-
-func _on_not_enough_resources(player):
-	if player == get_parent():
-		_handle_event(Constants.Match.VoiceNarrator.Events.NOT_ENOUGH_RESOURCES)

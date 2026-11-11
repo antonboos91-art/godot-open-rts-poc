@@ -1,0 +1,164 @@
+{
+  "shibas": {
+    "units": {
+      "all": {
+        "select": ["Shiba reporting.", "Yes, commander.", "Awaiting orders.", "Ready for duty.", "Standing by.", "Nose to the ground, sir.", "Pack is ready.", "What's the mission?"],
+        "move": ["Moving out.", "On my way.", "Roger that.", "Affirmative.", "Sniffing out the route.", "Paws on the move.", "Heading there now.", "Copy, relocating."],
+        "attack": ["Engaging the enemy.", "For the pack!", "Weapons hot.", "Target acquired.", "No paw back!", "Sic 'em!", "Opening fire.", "Bite them hard!"],
+        "annoyed": ["Do you have any treats, commander?", "Where are my treats?", "Time for my nap.", "Is it walk time yet?", "I heard a squirrel. Permission to investigate?", "Was that a doorbell?", "Who's a good soldier? I am.", "Please stop petting my helmet, commander."],
+        "death": ["Tell my pack... I was a good boy.", "Argh... the leash... is cut.", "I'll chase... cars... in heaven."]
+      },
+      "worker": {
+        "select": ["Collector ready.", "Scrap hauler online.", "Need something fetched?", "Ready to dig."],
+        "move": ["On my way.", "Rolling out.", "Heading over."],
+        "harvest": ["Fetching scrap.", "Digging in.", "I'll bring it back, I promise."]
+      },
+      "vehicle": {
+        "select": ["Tank crew ready.", "Armor standing by.", "Engines warm, commander.", "Treads ready to roll.", "Heavy paws ready."],
+        "move": ["Rolling out.", "Moving the armor.", "Full throttle.", "Treads turning."],
+        "attack": ["Main gun firing.", "Target locked.", "Unleash the thunder!", "Fire for effect."]
+      },
+      "air": {
+        "select": ["Wings ready.", "Pilot standing by.", "Eyes in the sky."],
+        "move": ["Taking off.", "Flying there now.", "Airborne."],
+        "attack": ["Diving on target.", "Rockets away!", "Strafing run."]
+      },
+      "beast": {
+        "select": ["Grrr. Ready.", "Woof. I mean, affirmative.", "Hound unit online."],
+        "attack": ["Charging!", "Teeth deployed.", "Bark of war!"],
+        "annoyed": ["Belly rubs after the mission.", "I smell victory. And bacon.", "Who's a good boy? Me. Obviously."]
+      },
+      "engineer": {
+        "select": ["Engineer ready.", "Tools sharpened, chew toys ready.", "What needs fixing?"],
+        "capture": ["Taking the building.", "This is my kennel now."],
+        "repair": ["Fixing it. Mostly with teeth.", "Repairs underway."]
+      }
+    },
+    "announcer": {
+      "welcome": "Welcome back, Mother Wolf.",
+      "base_under_attack": "Our base is under attack.",
+      "harvester_under_attack": "Our scrap collector is under attack.",
+      "unit_under_attack": "Our units are under fire.",
+      "unit_lost": "Unit lost.",
+      "building_lost": "Building destroyed.",
+      "construction_complete": "Construction complete.",
+      "training_complete": "Unit ready.",
+      "building": "Building.",
+      "low_power": "Low power.",
+      "power_restored": "Power restored.",
+      "insufficient_funds": "Insufficient scrap. Fetch more, good pack.",
+      "superweapon_ready": "Superweapon ready.",
+      "mission_accomplished": "Mission accomplished. Good dogs, all of you.",
+      "mission_failed": "Mission failed. The pack has fallen.",
+      "select_target": "Select target."
+    }
+  },
+  "katzen": {
+    "units": {
+      "all": {
+        "select": ["Yes, darling?", "I'm listening.", "Purr. What do you want?", "Out of the shadows.", "Whisper your orders.", "Mmm, you called?", "Quietly, please.", "I see everything."],
+        "move": ["Slipping away.", "Like a shadow.", "On silent paws.", "They won't hear me.", "As you wish, darling.", "Gliding through the dark.", "Moving unseen.", "Tiptoe, tiptoe."],
+        "attack": ["Claws out.", "A little scratch.", "They never saw me.", "Pounce.", "Sweet dreams, little mouse.", "Strike from the dark.", "Let them bleed, softly.", "Hiss."],
+        "annoyed": ["Don't touch the fur.", "I'm grooming. Go away.", "Is that a laser pointer?", "Ugh. Dogs.", "I knocked your coffee over. On purpose.", "Feed me first.", "Nine lives, zero patience.", "I'll be on the windowsill if you need me."],
+        "death": ["Eight left...", "Not... the fur...", "Meow..."]
+      },
+      "worker": {
+        "select": ["Crystal gatherer, darling.", "Shall I collect?", "Shiny things, yes."],
+        "move": ["Floating over.", "Quiet and quick.", "On my way, love."],
+        "harvest": ["Pretty crystals.", "Collecting, quietly.", "Mine. All mine."]
+      },
+      "vehicle": {
+        "select": ["Hover tank purring.", "The machine is ready, darling.", "Silent engines.", "Prowling armor.", "Ready to glide."],
+        "move": ["Hovering away.", "Gliding through.", "Soft and fast."],
+        "attack": ["Burn them gently.", "Prism charged.", "A beautiful light.", "Fire, my sweet."]
+      },
+      "air": {
+        "select": ["Night wings ready.", "Above them all.", "Moonlight pilot."],
+        "move": ["Flying through the dark.", "Silent flight.", "On the wind."],
+        "attack": ["Swooping down.", "Talons out.", "From above, darling."]
+      },
+      "beast": {
+        "select": ["Grrrr. Purrrr.", "The panther awaits.", "Hungry."],
+        "attack": ["Pounce!", "Shred them.", "The night bites."],
+        "annoyed": ["Scratch me there.", "Not the belly.", "Mrrrow."]
+      },
+      "engineer": {
+        "select": ["Hacker ready, darling.", "Their systems are mine.", "Let me in, quietly."],
+        "capture": ["Your building is mine now.", "Access granted, darling."],
+        "repair": ["Patching it up.", "A little stitch."]
+      }
+    },
+    "announcer": {
+      "welcome": "Welcome back, Meowmander.",
+      "base_under_attack": "They are clawing at our nest.",
+      "harvester_under_attack": "Our gatherer is being hunted.",
+      "unit_under_attack": "Our cats are under attack.",
+      "unit_lost": "One of us is gone.",
+      "building_lost": "A building has fallen.",
+      "construction_complete": "Construction complete, darling.",
+      "training_complete": "A new shadow is ready.",
+      "building": "Building, quietly.",
+      "low_power": "The lights are dimming.",
+      "power_restored": "Power restored.",
+      "insufficient_funds": "Not enough crystals, darling.",
+      "superweapon_ready": "The storm is ready.",
+      "mission_accomplished": "Victory. They never saw us coming.",
+      "mission_failed": "We have been found out.",
+      "select_target": "Choose your prey."
+    }
+  },
+  "baeren": {
+    "units": {
+      "all": {
+        "select": ["Comrade bear reporting!", "For the motherland!", "Da, comrade commander!", "Ready to serve the people!", "What does the party require?", "Bear is ready!", "Speak, comrade!", "Strong like bear!"],
+        "move": ["Moving, comrade!", "For the union!", "Da, da, I go!", "Forward, comrades!", "The march continues!", "To glory!", "By order of the party!", "Moving out, comrade bear!"],
+        "attack": ["Crush the capitalists!", "Ura!", "For the motherland!", "No retreat, comrades!", "Smash them!", "Glory to the revolution!", "Fire, comrade!", "Feel the iron fist!"],
+        "annoyed": ["Is there honey in the five year plan?", "I share my honey with the collective. Mostly.", "Comrade, stop poking.", "In the union, the bear pokes you!", "Where is my vodka ration?", "I need hibernation, comrade.", "The salmon quota is not met!", "Comrade, this is very bourgeois."],
+        "death": ["For... the motherland...", "Tell... my comrades...", "The revolution... continues..."]
+      },
+      "worker": {
+        "select": ["Scrap truck ready, comrade!", "The people need scrap!", "Worker bear reporting!"],
+        "move": ["Driving, comrade!", "To the quarry!", "I go!"],
+        "harvest": ["Collecting for the collective!", "The quota will be met!", "Scrap for the motherland!"]
+      },
+      "vehicle": {
+        "select": ["Tank crew ready, comrade!", "Heavy armor of the people!", "Grizzly tank, reporting!", "Iron bear ready!", "Engines roaring, comrade!"],
+        "move": ["Rolling forward!", "Treads of the revolution!", "Advance, comrades!"],
+        "attack": ["Main gun, fire!", "Crush them with steel!", "For the union, fire!", "Ura! Fire!"]
+      },
+      "air": {
+        "select": ["Pilot bear ready!", "The sky belongs to the people!", "Flying iron, comrade!"],
+        "move": ["Taking off, comrade!", "Flying to glory!", "Airborne for the union!"],
+        "attack": ["Bombs for the bourgeoisie!", "Attack from above!", "Ura! Diving!"]
+      },
+      "beast": {
+        "select": ["Roooar. Ready.", "Kodiak awaits orders.", "Grrr. Comrade."],
+        "attack": ["Roooar!", "Maul them!", "Bear hug of doom!"],
+        "annoyed": ["Honey first.", "Do not wake the bear.", "Grumble."]
+      },
+      "engineer": {
+        "select": ["Mechanic ready, comrade!", "Where is broken, comrade?", "I fix with hammer!"],
+        "capture": ["This building now belongs to the people!", "Collectivized!"],
+        "repair": ["Fixing for the motherland!", "Hammer and wrench, comrade!"]
+      }
+    },
+    "announcer": {
+      "welcome": "Welcome back, Bearmander. The motherland salutes you.",
+      "base_under_attack": "Comrades! Our base is under attack!",
+      "harvester_under_attack": "Our scrap truck is under attack, comrade!",
+      "unit_under_attack": "Our comrades are under fire!",
+      "unit_lost": "A comrade has fallen.",
+      "building_lost": "A building of the people has been destroyed.",
+      "construction_complete": "Construction complete. Glory to the workers!",
+      "training_complete": "New comrade ready for duty.",
+      "building": "Construction begins, comrade.",
+      "low_power": "Power is low! The five year plan is in danger!",
+      "power_restored": "Power restored. Glory to the union.",
+      "insufficient_funds": "Not enough scrap, comrade. Work harder!",
+      "superweapon_ready": "The superweapon is ready, comrade. Use it wisely.",
+      "mission_accomplished": "Victory for the motherland! Ura!",
+      "mission_failed": "We have failed the motherland.",
+      "select_target": "Select target, comrade."
+    }
+  }
+}

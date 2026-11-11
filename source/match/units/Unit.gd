@@ -82,7 +82,8 @@ func is_revealing():
 func _set_hp(value):
 	var old_hp = hp
 	hp = max(0, value)
-	if old_hp != null and hp < old_hp:
+	# Beim Aufsetzen der Werte (_ready) ist das kein Schaden - sonst meldet die Zentrale falsche Angriffe
+	if old_hp != null and hp < old_hp and is_node_ready():
 		MatchSignals.unit_damaged.emit(self)
 		_play_damage_sound()
 	hp_changed.emit()
