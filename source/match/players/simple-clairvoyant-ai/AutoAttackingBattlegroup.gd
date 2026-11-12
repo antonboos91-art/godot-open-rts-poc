@@ -20,11 +20,11 @@ var _state = State.FORMING
 var _attached_units = []
 
 
-var _not_before_ms = 0
+var _not_before_s = 0.0
 
 
 func _init(expected_number_of_units, players_to_attack, attack_delay_s = 0.0):
-	_not_before_ms = Time.get_ticks_msec() + int(attack_delay_s * 1000.0)
+	_not_before_s = game_seconds() + attack_delay_s
 	_expected_number_of_units = expected_number_of_units
 	_players_to_attack = players_to_attack
 	_player_to_attack = _players_to_attack.front()
@@ -44,16 +44,18 @@ func attach_unit(unit):
 
 func _start_attacking():
 	_state = State.ATTACKING
-	var wait_ms = _not_before_ms - Time.get_ticks_msec()
-	if wait_ms > 0:
+	var wait_s = _not_before_s - game_seconds()
+	if wait_s > 0.0:
 		# Gruppe wartet fertig formiert, bis die Schwierigkeit den Angriff erlaubt
-		await get_tree().create_timer(wait_ms / 1000.0).timeout
+		await get_tree().create_timer(wait_s).timeout
 		if not is_inside_tree():
 			return
 	_attack_next_adversary_unit()
 
 
 func _attack_next_adversary_unit():
+	if _attached_units.is_empty():
+		return
 	var adversary_units = get_tree().get_nodes_in_group("units").filter(
 		func(unit): return unit.player == _player_to_attack
 	)
@@ -158,3 +160,8 @@ func _on_march_timer():
 	)
 	if not busy:
 		_attack_next_adversary_unit()
+
+
+## Spielzeit in Sekunden (läuft mit dem Zeitraffer mit, anders als die Uhrzeit des Rechners).
+static func game_seconds():
+	return Engine.get_physics_frames() / float(Engine.physics_ticks_per_second)

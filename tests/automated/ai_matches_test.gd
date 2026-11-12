@@ -9,6 +9,7 @@ var _map_path = "res://source/match/maps/Highlands4.tscn"
 var _rounds = 3
 var _max_seconds = 2400.0
 var _time_scale = 12.0
+var _first_round = 0
 var _failures = 0
 var Factions = null
 var Constants = null
@@ -33,6 +34,8 @@ func _run():
 		_max_seconds = float(args[2])
 	if args.size() > 3:
 		_time_scale = float(args[3])
+	if args.size() > 4:
+		_first_round = int(args[4])
 	_faction_cycle = [
 		[Factions.SHIBAS, Factions.KATZEN, Factions.BAEREN, Factions.SHIBAS],
 		[Factions.KATZEN, Factions.BAEREN, Factions.SHIBAS, Factions.KATZEN],
@@ -40,7 +43,7 @@ func _run():
 	]
 	var results = []
 	for round in _rounds:
-		results.append(await _play_round(round))
+		results.append(await _play_round(round + _first_round))
 	print("=== AI MATCH SUMMARY (%s, %d rounds) ===" % [_map_path, _rounds])
 	var durations = []
 	for r in results:
@@ -68,6 +71,7 @@ func _play_round(round):
 	if match_node == null:
 		result["problems"].append("match did not start")
 		return result
+	paused = false
 	Engine.time_scale = _time_scale
 	var game_seconds = 0.0
 	var last_progress_s = 0.0
@@ -99,6 +103,7 @@ func _play_round(round):
 			last_progress_s = game_seconds
 		elif game_seconds - last_progress_s > 600.0:
 			result["problems"].append("no change for 600 s at %.0f s (stuck?)" % game_seconds)
+			_dump_remaining()
 			break
 	result["seconds"] = game_seconds
 	if result["winner"] == "none":
@@ -145,6 +150,7 @@ func _start_match(round):
 
 
 func _cleanup():
+	paused = false  # das Spielende-Menü pausiert den Baum
 	var match_node = root.get_node_or_null("Match")
 	if match_node != null:
 		match_node.queue_free()
@@ -153,3 +159,19 @@ func _cleanup():
 		loading.queue_free()
 	for i in 10:
 		await process_frame
+
+
+## Bei einem Hänger: wer ist noch übrig, wo steht er, was tut er?
+func _dump_remaining():
+	for unit in get_nodes_in_group("units"):
+		print(
+			"   left: p%d %s at %s hp %.1f action %s visible %s"
+			% [
+				unit.player.get_index(),
+				unit.variant,
+				unit.global_position,
+				unit.hp,
+				str(unit.action) if unit.action != null else "none",
+				unit.visible
+			]
+		)

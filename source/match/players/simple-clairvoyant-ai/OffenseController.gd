@@ -29,6 +29,7 @@ var _secondary_unit_scene = null
 var _number_of_pending_unit_resource_requests = {}
 var _battlegroup_under_forming = null
 var _battlegroups = []
+var _started_s = AutoAttackingBattlegroup.game_seconds()  # erster Angriff frühestens attack_delay_s nach Spielstart
 
 @onready var _ai = get_parent()
 
@@ -121,7 +122,7 @@ func _try_creating_new_battlegroup():
 	)
 	adversary_players.shuffle()
 	var battlegroup = AutoAttackingBattlegroup.new(
-		_ai.expected_number_of_units_in_battlegroup, adversary_players, _ai.attack_delay_s
+		_ai.expected_number_of_units_in_battlegroup, adversary_players, max(0.0, _ai.attack_delay_s - (AutoAttackingBattlegroup.game_seconds() - _started_s))
 	)
 	_battlegroups.append(battlegroup)
 	battlegroup.tree_exited.connect(_on_battlegroup_died.bind(battlegroup))
@@ -296,6 +297,10 @@ func _on_battlegroup_died(battlegroup):
 
 
 func _on_refresh_timer_timeout():
+	# Nachschub: Sind alle Kampfgruppen gefallen, formiert sich sofort eine neue (ohne erneute Wartezeit),
+	# sonst bliebe die Partie stehen, solange der Gegner noch etwas besitzt.
+	if _battlegroup_under_forming == null and _battlegroups.size() < _ai.expected_number_of_battlegroups:
+		_try_creating_new_battlegroup()
 	_enforce_primary_structure_existence()
 	# secondary structure existence is enforced only when a battlegroup is formed
 	_enforce_primary_units_production()
